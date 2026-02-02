@@ -47,15 +47,23 @@ function parseDatabaseConfig() {
 
 const dbConfig = parseDatabaseConfig();
 
+// Debug: Check if API key is loaded
+const coingeckoKey = process.env.COINGECKO_API_KEY;
+if (coingeckoKey) {
+  console.log(`✅ CoinGecko API key loaded: ${coingeckoKey.substring(0, 8)}...`);
+} else {
+  console.log('⚠️  CoinGecko API key not found in environment');
+}
+
 const config = {
   api: {
     port: parseInt(process.env.API_PORT || process.env.PORT || '3000'),
     database: dbConfig,
-    coingeckoApiKey: process.env.COINGECKO_API_KEY
+    coingeckoApiKey: coingeckoKey
   },
   scheduler: {
     database: dbConfig,
-    coingeckoApiKey: process.env.COINGECKO_API_KEY,
+    coingeckoApiKey: coingeckoKey,
     intervalMinutes: parseInt(process.env.COLLECTION_INTERVAL_MINUTES || '60'),
     delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000')
   }

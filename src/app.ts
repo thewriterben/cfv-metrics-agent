@@ -16,26 +16,24 @@ import { CollectionScheduler } from './scheduler/CollectionScheduler.js';
 dotenv.config();
 
 // Configuration
+// Railway provides MySQL variables as MYSQLHOST, MYSQLPORT, etc.
+// We support both Railway's format and custom DB_* format
+const dbConfig = {
+  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+  port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
+  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cfv_metrics'
+};
+
 const config = {
   api: {
-    port: parseInt(process.env.API_PORT || '3000'),
-    database: {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '3306'),
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'cfv_metrics'
-    },
+    port: parseInt(process.env.API_PORT || process.env.PORT || '3000'),
+    database: dbConfig,
     coingeckoApiKey: process.env.COINGECKO_API_KEY
   },
   scheduler: {
-    database: {
-      host: process.env.DB_HOST || 'localhost',
-      port: parseInt(process.env.DB_PORT || '3306'),
-      user: process.env.DB_USER || 'root',
-      password: process.env.DB_PASSWORD || '',
-      database: process.env.DB_NAME || 'cfv_metrics'
-    },
+    database: dbConfig,
     coingeckoApiKey: process.env.COINGECKO_API_KEY,
     intervalMinutes: parseInt(process.env.COLLECTION_INTERVAL_MINUTES || '60'),
     delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000')

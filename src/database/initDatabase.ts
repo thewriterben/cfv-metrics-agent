@@ -26,6 +26,11 @@ export async function initializeDatabase(config: {
       multipleStatements: true
     });
 
+    // Drop and recreate collection_runs table to fix schema mismatch
+    // (Safe because it only contains temporary run data)
+    await connection.query('DROP TABLE IF EXISTS collection_runs');
+    console.log('✅ Dropped old collection_runs table (if exists)');
+
     // Create tables
     const schema = `
       -- Create coins table

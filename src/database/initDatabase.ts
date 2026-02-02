@@ -26,10 +26,12 @@ export async function initializeDatabase(config: {
       multipleStatements: true
     });
 
-    // Drop and recreate collection_runs table to fix schema mismatch
-    // (Safe because it only contains temporary run data)
+    // Drop and recreate tables to fix schema mismatches
+    // (Safe because metrics can be recollected)
+    await connection.query('DROP TABLE IF EXISTS metric_history');
+    await connection.query('DROP TABLE IF EXISTS metrics');
     await connection.query('DROP TABLE IF EXISTS collection_runs');
-    console.log('✅ Dropped old collection_runs table (if exists)');
+    console.log('✅ Dropped old tables (if exist) to fix schema');
 
     // Create tables
     const schema = `
@@ -53,13 +55,12 @@ export async function initializeDatabase(config: {
           annual_tx_count BIGINT,
           annual_tx_value DECIMAL(30, 2),
           avg_tx_value DECIMAL(20, 8),
-          confidence VARCHAR(20),
+          confidence_level VARCHAR(20),
           sources TEXT,
           metadata JSON,
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+          collected_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
           FOREIGN KEY (coin_id) REFERENCES coins(id) ON DELETE CASCADE,
-          INDEX idx_coin_updated (coin_id, updated_at)
+          INDEX idx_coin_collected (coin_id, collected_at)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
       -- Create metric_history table
@@ -69,7 +70,7 @@ export async function initializeDatabase(config: {
           annual_tx_count BIGINT,
           annual_tx_value DECIMAL(30, 2),
           avg_tx_value DECIMAL(20, 8),
-          confidence VARCHAR(20),
+          confidence_level VARCHAR(20),
           sources TEXT,
           metadata JSON,
           recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

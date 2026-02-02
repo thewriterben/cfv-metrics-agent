@@ -1,6 +1,7 @@
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
 import { APIServer } from './api/server.js';
 import { CollectionScheduler } from './scheduler/CollectionScheduler.js';
+import { initializeDatabase } from './database/initDatabase.js';
 
 /**
  * CFV Metrics Agent - Main Application
@@ -95,6 +96,15 @@ async function start() {
     console.log(`Collection Interval: ${config.scheduler.intervalMinutes} minutes`);
     console.log(`Rate Limit Delay: ${config.scheduler.delayBetweenCoins / 1000} seconds`);
     console.log('='.repeat(80) + '\n');
+
+    // Initialize database schema (if needed)
+    console.log('Checking database schema...');
+    try {
+      await initializeDatabase(config.api.database);
+    } catch (error) {
+      console.log('Note: Database may already be initialized');
+    }
+    console.log('');
 
     // Start API server
     console.log('Starting API server...');

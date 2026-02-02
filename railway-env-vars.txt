@@ -1,0 +1,66 @@
+# Railway Environment Variables Configuration
+# Copy these variables to your Railway project dashboard
+
+# ============================================================================
+# STEP 1: Add these variables in Railway Dashboard
+# Go to: Project → Service → Variables
+# ============================================================================
+
+# API Configuration
+API_PORT=3000
+NODE_ENV=production
+
+# Database Configuration (Auto-injected by Railway MySQL)
+# These will be automatically set when you add MySQL database
+# DB_HOST=${{MYSQL.RAILWAY_PRIVATE_DOMAIN}}
+# DB_PORT=${{MYSQL.RAILWAY_TCP_PROXY_PORT}}
+# DB_USER=${{MYSQL.MYSQLUSER}}
+# DB_PASSWORD=${{MYSQL.MYSQLPASSWORD}}
+DB_NAME=cfv_metrics
+
+# CoinGecko API Key (VERIFIED ✅)
+COINGECKO_API_KEY=CG-2YSqU75XEvKC2oV38hnvQfGd
+
+# Collection Settings
+COLLECTION_INTERVAL_MINUTES=60
+DELAY_BETWEEN_COINS_MS=5000
+MAX_RETRIES=3
+RETRY_DELAY_MS=2000
+
+# Logging
+LOG_LEVEL=info
+DEBUG_MODE=false
+
+# Performance
+ENABLE_REDIS=false
+CACHE_TTL_SHORT=1800
+CACHE_TTL_MEDIUM=3600
+CACHE_TTL_LONG=86400
+
+# Security
+ALLOWED_ORIGINS=*
+ENABLE_AUTH=false
+
+# Monitoring
+ENABLE_HEALTH_CHECK=true
+HEALTH_CHECK_INTERVAL=60
+
+# ============================================================================
+# STEP 2: Add MySQL Database
+# In Railway dashboard:
+# 1. Click "New" → "Database" → "MySQL"
+# 2. Railway will auto-inject database variables
+# ============================================================================
+
+# ============================================================================
+# STEP 3: Initialize Database
+# After deployment, run this command using Railway CLI:
+# railway run npm run db:init
+# Or manually connect and run database/schema.sql
+# ============================================================================
+
+# ============================================================================
+# STEP 4: Verify Deployment
+# Test health endpoint:
+# curl https://your-app.railway.app/health
+# ============================================================================

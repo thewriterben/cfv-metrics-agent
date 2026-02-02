@@ -120,13 +120,13 @@ export class DatabaseManager {
       // Insert into metrics table (current)
       await connection.execute(
         `INSERT INTO metrics (coin_id, annual_tx_count, annual_tx_value, avg_tx_value, 
-         confidence, sources, metadata, created_at)
+         confidence_level, sources, metadata, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)
          ON DUPLICATE KEY UPDATE
          annual_tx_count = VALUES(annual_tx_count),
          annual_tx_value = VALUES(annual_tx_value),
          avg_tx_value = VALUES(avg_tx_value),
-         confidence = VALUES(confidence),
+         confidence_level = VALUES(confidence_level),
          sources = VALUES(sources),
          metadata = VALUES(metadata),
          created_at = VALUES(created_at)`,
@@ -145,7 +145,7 @@ export class DatabaseManager {
       // Insert into metric_history table
       await connection.execute(
         `INSERT INTO metric_history (coin_id, annual_tx_count, annual_tx_value, avg_tx_value,
-         confidence, sources, metadata, recorded_at)
+         confidence_level, sources, metadata, recorded_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           coin.id,

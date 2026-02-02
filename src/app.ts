@@ -16,15 +16,35 @@ import { CollectionScheduler } from './scheduler/CollectionScheduler.js';
 dotenv.config();
 
 // Configuration
-// Railway provides MySQL variables as MYSQLHOST, MYSQLPORT, etc.
-// We support both Railway's format and custom DB_* format
-const dbConfig = {
-  host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-  port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
-  user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-  password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-  database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cfv_metrics'
-};
+// Parse database configuration from MYSQL_URL or individual variables
+function parseDatabaseConfig() {
+  // If MYSQL_URL is provided (Railway format), parse it
+  if (process.env.MYSQL_URL) {
+    try {
+      const url = new URL(process.env.MYSQL_URL);
+      return {
+        host: url.hostname,
+        port: parseInt(url.port) || 3306,
+        user: url.username,
+        password: url.password,
+        database: url.pathname.slice(1) || 'cfv_metrics' // Remove leading '/'
+      };
+    } catch (error) {
+      console.error('Failed to parse MYSQL_URL:', error);
+    }
+  }
+  
+  // Fall back to individual environment variables
+  return {
+    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
+    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
+    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
+    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cfv_metrics'
+  };
+}
+
+const dbConfig = parseDatabaseConfig();
 
 const config = {
   api: {

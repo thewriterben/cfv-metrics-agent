@@ -75,14 +75,15 @@ export async function initializeDatabase(config: {
       -- Create collection_runs table
       CREATE TABLE IF NOT EXISTS collection_runs (
           id INT PRIMARY KEY AUTO_INCREMENT,
-          start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-          end_time TIMESTAMP NULL,
-          coins_processed INT DEFAULT 0,
+          status VARCHAR(20) DEFAULT 'running',
+          coins_total INT DEFAULT 0,
           coins_successful INT DEFAULT 0,
           coins_failed INT DEFAULT 0,
-          status VARCHAR(20) DEFAULT 'running',
-          error_log TEXT,
-          INDEX idx_start_time (start_time),
+          error_message TEXT,
+          started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+          completed_at TIMESTAMP NULL,
+          duration_ms INT,
+          INDEX idx_started_at (started_at),
           INDEX idx_status (status)
       ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
     `;

@@ -110,7 +110,8 @@ export async function initializeDatabase(config: {
       ('XEC', 'eCash', 'ecash', TRUE),
       ('XNO', 'Nano', 'nano', TRUE),
       ('NEAR', 'NEAR Protocol', 'near', TRUE),
-      ('ICP', 'Internet Computer', 'internet-computer', TRUE)
+      ('ICP', 'Internet Computer', 'internet-computer', TRUE),
+      ('ZCL', 'Zclassic', 'zclassic', TRUE)
       ON DUPLICATE KEY UPDATE 
           name=VALUES(name), 
           coingecko_id=VALUES(coingecko_id),
@@ -118,7 +119,7 @@ export async function initializeDatabase(config: {
     `;
 
     await connection.query(insertCoins);
-    console.log('✅ Initial coin data inserted (11 DGF coins)');
+    console.log('✅ Initial coin data inserted (12 DGF coins)');
 
     // Verify
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM coins');

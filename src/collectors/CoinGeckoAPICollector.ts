@@ -109,7 +109,8 @@ export class CoinGeckoAPICollector {
       'NEAR': 'near',
       'ICP': 'internet-computer',
       'EGLD': 'elrond-erd-2',
-      'DGD': 'digixdao'
+      'DGD': 'digixdao',
+      'ZCL': 'zclassic'
     };
 
     return mapping[symbol.toUpperCase()] || symbol.toLowerCase();

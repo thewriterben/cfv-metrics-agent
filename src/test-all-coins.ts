@@ -1,12 +1,12 @@
 import { BlockchainDataCollector } from './collectors/BlockchainDataCollector.js';
 
 /**
- * Test All 11 DGF Coins
+ * Test All 12 DGF Coins
  * 
- * Comprehensive test of the BlockchainDataCollector with all 11 DGF coins.
+ * Comprehensive test of the BlockchainDataCollector with all 12 DGF coins.
  */
 
-// All 11 DGF coins
+// All 12 DGF coins
 const DGF_COINS = [
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
@@ -18,7 +18,8 @@ const DGF_COINS = [
   { symbol: 'XEC', name: 'eCash' },
   { symbol: 'XNO', name: 'Nano' },
   { symbol: 'NEAR', name: 'NEAR Protocol' },
-  { symbol: 'ICP', name: 'Internet Computer' }
+  { symbol: 'ICP', name: 'Internet Computer' },
+  { symbol: 'ZCL', name: 'Zclassic' }
 ];
 
 async function delay(ms: number): Promise<void> {
@@ -26,7 +27,7 @@ async function delay(ms: number): Promise<void> {
 }
 
 async function testAllCoins() {
-  console.log('🧪 Testing All 11 DGF Coins\n');
+  console.log('🧪 Testing All 12 DGF Coins\n');
   console.log('='.repeat(80) + '\n');
 
   const collector = new BlockchainDataCollector({

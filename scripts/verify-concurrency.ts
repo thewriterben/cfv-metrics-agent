@@ -54,7 +54,7 @@ async function collectConcurrently(coins: CoinMock[], maxConcurrency: number): P
   const startTime = performance.now();
   
   const results: Promise<void>[] = [];
-  const executing: Promise<void>[] = [];
+  const executing = new Set<Promise<void>>();
   
   for (const coin of coins) {
     const promise = (async () => {
@@ -64,19 +64,17 @@ async function collectConcurrently(coins: CoinMock[], maxConcurrency: number): P
     })();
     
     results.push(promise);
+    executing.add(promise);
+    
+    // Clean up when promise completes
+    promise.finally(() => {
+      executing.delete(promise);
+    });
     
     // If we've reached max concurrency, wait for one to finish
-    if (executing.length >= maxConcurrency) {
+    if (executing.size >= maxConcurrency) {
       await Promise.race(executing);
     }
-    
-    executing.push(promise);
-    promise.finally(() => {
-      const index = executing.indexOf(promise);
-      if (index !== -1) {
-        executing.splice(index, 1);
-      }
-    });
   }
   
   // Wait for all remaining promises

@@ -1,5 +1,6 @@
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
+import { executeBatchedConcurrent } from '../utils/concurrency.js';
 
 /**
  * Collection Scheduler
@@ -17,7 +18,15 @@ export interface SchedulerConfig {
   };
   coingeckoApiKey?: string;
   intervalMinutes: number; // Collection interval in minutes
-  delayBetweenCoins: number; // Delay between coin collections in ms
+  delayBetweenCoins: number; // Delay between coin collections in ms (deprecated, kept for backward compatibility)
+  concurrency?: {
+    '3xpl': number;
+    'coingecko': number;
+    'custom-dash': number;
+    'custom-nano': number;
+    'custom-near': number;
+    'custom-icp': number;
+  };
 }
 
 export class CollectionScheduler {
@@ -33,6 +42,18 @@ export class CollectionScheduler {
     this.collector = new BlockchainDataCollector({
       coingeckoApiKey: config.coingeckoApiKey
     });
+
+    // Set default concurrency limits if not provided
+    if (!this.config.concurrency) {
+      this.config.concurrency = {
+        '3xpl': 3,           // 3xpl can handle multiple coins in parallel
+        'coingecko': 5,      // CoinGecko has higher rate limits
+        'custom-dash': 2,    // Custom APIs - moderate concurrency
+        'custom-nano': 2,
+        'custom-near': 2,
+        'custom-icp': 2
+      };
+    }
   }
 
   /**
@@ -103,32 +124,66 @@ export class CollectionScheduler {
       let failed = 0;
       let lastError: string | undefined;
 
+      // Group coins by data source
+      const coinsBySource: Record<string, Array<{ name: string; symbol: string; source: string }>> = {};
+      
       for (const coin of coins) {
-        try {
-          console.log(`\n📊 Collecting ${coin.name} (${coin.symbol})...`);
-          
-          const startTime = Date.now();
-          const metrics = await this.collector.getTransactionMetrics(coin.symbol);
-          const duration = Date.now() - startTime;
+        const source = this.collector.getDataSource(coin.symbol);
+        if (!coinsBySource[source]) {
+          coinsBySource[source] = [];
+        }
+        coinsBySource[source].push({ ...coin, source });
+      }
 
-          await this.db.saveMetrics(coin.symbol, metrics);
-          
-          console.log(`✅ Success in ${duration}ms`);
-          console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
-          console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
-          console.log(`   Confidence: ${metrics.confidence}`);
-          
-          successful++;
+      console.log('\n📊 Collection strategy:');
+      for (const [source, sourceCoins] of Object.entries(coinsBySource)) {
+        const concurrency = this.config.concurrency![source] || 1;
+        console.log(`   ${source}: ${sourceCoins.length} coins (concurrency: ${concurrency})`);
+      }
+      console.log('');
 
-          // Rate limiting delay
-          if (coins.indexOf(coin) < coins.length - 1) {
-            console.log(`   ⏳ Waiting ${this.config.delayBetweenCoins / 1000}s for rate limiting...`);
-            await new Promise(resolve => setTimeout(resolve, this.config.delayBetweenCoins));
+      // Create task groups for concurrent execution
+      const taskGroups: Record<string, Array<() => Promise<{ coin: any; success: boolean; error?: string; duration: number; metrics?: any }>>> = {};
+      const concurrencyLimits: Record<string, number> = {};
+
+      for (const [source, sourceCoins] of Object.entries(coinsBySource)) {
+        taskGroups[source] = sourceCoins.map(coin => async () => {
+          try {
+            console.log(`\n📊 Collecting ${coin.name} (${coin.symbol}) from ${coin.source}...`);
+            
+            const startTime = Date.now();
+            const metrics = await this.collector.getTransactionMetrics(coin.symbol);
+            const duration = Date.now() - startTime;
+
+            await this.db.saveMetrics(coin.symbol, metrics);
+            
+            console.log(`✅ ${coin.symbol} success in ${duration}ms`);
+            console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
+            console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
+            console.log(`   Confidence: ${metrics.confidence}`);
+
+            return { coin, success: true, duration, metrics };
+          } catch (error) {
+            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+            console.error(`❌ Failed to collect ${coin.symbol}:`, error);
+            return { coin, success: false, error: errorMsg, duration: 0 };
           }
-        } catch (error) {
-          console.error(`❌ Failed to collect ${coin.symbol}:`, error);
-          failed++;
-          lastError = error instanceof Error ? error.message : 'Unknown error';
+        });
+        concurrencyLimits[source] = this.config.concurrency![source] || 1;
+      }
+
+      // Execute all tasks with concurrency limits per source
+      const results = await executeBatchedConcurrent(taskGroups, concurrencyLimits);
+
+      // Process results
+      for (const sourceResults of Object.values(results)) {
+        for (const result of sourceResults) {
+          if (result.success) {
+            successful++;
+          } else {
+            failed++;
+            lastError = result.error;
+          }
         }
       }
 

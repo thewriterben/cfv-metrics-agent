@@ -77,7 +77,15 @@ const config = {
     database: dbConfig,
     coingeckoApiKey: coingeckoKey,
     intervalMinutes: parseInt(process.env.COLLECTION_INTERVAL_MINUTES || '60'),
-    delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000')
+    delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000'),
+    concurrency: {
+      '3xpl': parseInt(process.env.CONCURRENCY_3XPL || '3'),
+      'coingecko': parseInt(process.env.CONCURRENCY_COINGECKO || '5'),
+      'custom-dash': parseInt(process.env.CONCURRENCY_CUSTOM_DASH || '2'),
+      'custom-nano': parseInt(process.env.CONCURRENCY_CUSTOM_NANO || '2'),
+      'custom-near': parseInt(process.env.CONCURRENCY_CUSTOM_NEAR || '2'),
+      'custom-icp': parseInt(process.env.CONCURRENCY_CUSTOM_ICP || '2')
+    }
   }
 };
 

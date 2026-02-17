@@ -11,6 +11,12 @@ export class CFVCalculator {
   
   /**
    * Calculate CFV using the 70/10/10/10 formula
+   * 
+   * Enhanced with safety checks for:
+   * - Division by zero protection
+   * - Negative value validation
+   * - NaN and Infinity detection
+   * - Minimum value enforcement
    */
   static calculate(metrics: CFVMetrics): CFVCalculation {
     // Extract metric values
@@ -21,16 +27,49 @@ export class CFVCalculator {
     const currentPrice = metrics.price.value;
     const circulatingSupply = metrics.circulatingSupply.value;
     
-    // Validate inputs
-    if (circulatingSupply === 0) {
-      throw new Error('Circulating supply cannot be zero');
+    // Comprehensive input validation
+    
+    // Check for negative or zero values
+    if (currentPrice <= 0) {
+      throw new Error(`Invalid price: ${currentPrice}. Price must be greater than 0`);
     }
     
-    // Calculate individual contributions
-    const communityContribution = Math.pow(communitySize, this.WEIGHTS.communitySize);
-    const txValueContribution = Math.pow(annualTxValue, this.WEIGHTS.annualTransactionValue);
-    const txCountContribution = Math.pow(annualTxCount, this.WEIGHTS.annualTransactions);
-    const developerContribution = Math.pow(developers, this.WEIGHTS.developers);
+    if (circulatingSupply <= 0) {
+      throw new Error(`Invalid circulating supply: ${circulatingSupply}. Supply must be greater than 0`);
+    }
+    
+    // Check for NaN or Infinity in inputs
+    const inputs = [communitySize, annualTxValue, annualTxCount, developers, currentPrice, circulatingSupply];
+    const inputNames = ['communitySize', 'annualTransactionValue', 'annualTransactions', 'developers', 'price', 'circulatingSupply'];
+    
+    for (let i = 0; i < inputs.length; i++) {
+      if (!isFinite(inputs[i]) || isNaN(inputs[i])) {
+        throw new Error(`Invalid ${inputNames[i]}: ${inputs[i]}. Must be a finite number`);
+      }
+    }
+    
+    // Ensure minimum values (floor at 1) to prevent division issues and invalid calculations
+    // This prevents pow(0, weight) which equals 0 and would make entire calculation 0
+    const safeCommunitySize = Math.max(1, communitySize);
+    const safeAnnualTxValue = Math.max(1, annualTxValue);
+    const safeAnnualTxCount = Math.max(1, annualTxCount);
+    const safeDevelopers = Math.max(1, developers);
+    
+    // Calculate individual contributions with safety checks
+    const communityContribution = Math.pow(safeCommunitySize, this.WEIGHTS.communitySize);
+    const txValueContribution = Math.pow(safeAnnualTxValue, this.WEIGHTS.annualTransactionValue);
+    const txCountContribution = Math.pow(safeAnnualTxCount, this.WEIGHTS.annualTransactions);
+    const developerContribution = Math.pow(safeDevelopers, this.WEIGHTS.developers);
+    
+    // Validate intermediate calculations
+    const contributions = [communityContribution, txValueContribution, txCountContribution, developerContribution];
+    const contributionNames = ['community', 'transactionValue', 'transactionCount', 'developer'];
+    
+    for (let i = 0; i < contributions.length; i++) {
+      if (!isFinite(contributions[i]) || isNaN(contributions[i])) {
+        throw new Error(`Invalid ${contributionNames[i]} contribution: ${contributions[i]}. Check input values and weights`);
+      }
+    }
     
     // Calculate Network Power Score
     const networkPowerScore = 
@@ -39,8 +78,18 @@ export class CFVCalculator {
       txCountContribution *
       developerContribution;
     
+    // Validate network power score
+    if (!isFinite(networkPowerScore) || isNaN(networkPowerScore)) {
+      throw new Error(`Invalid network power score: ${networkPowerScore}. Calculation produced invalid result`);
+    }
+    
     // Calculate Fair Value
     const fairValue = networkPowerScore / circulatingSupply;
+    
+    // Validate fair value
+    if (!isFinite(fairValue) || isNaN(fairValue) || fairValue <= 0) {
+      throw new Error(`Invalid fair value: ${fairValue}. Check circulating supply and network power score`);
+    }
     
     // Calculate Fair Market Cap
     const fairMarketCap = fairValue * circulatingSupply;
@@ -48,9 +97,27 @@ export class CFVCalculator {
     // Calculate Current Market Cap
     const currentMarketCap = currentPrice * circulatingSupply;
     
+    // Validate market caps
+    if (!isFinite(fairMarketCap) || isNaN(fairMarketCap)) {
+      throw new Error(`Invalid fair market cap: ${fairMarketCap}`);
+    }
+    
+    if (!isFinite(currentMarketCap) || isNaN(currentMarketCap)) {
+      throw new Error(`Invalid current market cap: ${currentMarketCap}`);
+    }
+    
     // Calculate valuation metrics
     const valuationPercent = ((currentPrice - fairValue) / fairValue) * 100;
     const priceMultiplier = currentPrice / fairValue;
+    
+    // Validate final calculations
+    if (!isFinite(valuationPercent) || isNaN(valuationPercent)) {
+      throw new Error(`Invalid valuation percent: ${valuationPercent}`);
+    }
+    
+    if (!isFinite(priceMultiplier) || isNaN(priceMultiplier)) {
+      throw new Error(`Invalid price multiplier: ${priceMultiplier}`);
+    }
     
     // Determine valuation status
     let valuationStatus: ValuationStatus;

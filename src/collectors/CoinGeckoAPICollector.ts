@@ -74,12 +74,16 @@ export class CoinGeckoAPICollector {
       // avgTxValue estimation is crude and varies significantly by coin:
       // - For high-cap coins (BTC, ETH): transactions tend to be larger
       // - For smaller coins: transactions tend to be smaller
-      // The old approach used 0.001 (0.1%) of market cap, leading to systematic underestimation
       // 
-      // Improved heuristic: Use volume-based approach with MARKET_CAP_RATIO (0.0001 = 0.01%)
-      // Assume average tx value is proportional to market activity
-      // For most coins, avgTxValue ranges from $100 to $10,000
-      // This is still an estimate - real blockchain data would be more accurate
+      // Old approach: Used marketCap * 0.001 (0.1%) unbounded, causing issues:
+      //   - For BTC (~$1T market cap): avgTxValue = $1B (way too high)
+      //   - Led to massive underestimation of transaction counts
+      // 
+      // Improved heuristic: Use bounded calculation
+      // - Start with marketCap * 0.0001 (0.01%) as base estimate
+      // - Clamp result between $100 and $10,000 (realistic transaction values)
+      // - The bounds prevent extreme values from market cap variations
+      // - This is still an estimate - real blockchain data would be more accurate
       //
       // Clamping: Ensures result is at least MIN_AVG_TX_VALUE and at most MAX_AVG_TX_VALUE
       const estimatedAvgTxValue = marketCap > 0 

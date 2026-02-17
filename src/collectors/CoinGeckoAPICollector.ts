@@ -62,10 +62,30 @@ export class CoinGeckoAPICollector {
       const volume24h = marketData.total_volume?.usd || 0;
       const marketCap = marketData.market_cap?.usd || 0;
       const price = marketData.current_price?.usd || 0;
+      const circulatingSupply = marketData.circulating_supply || 0;
 
       // Estimate annual transactions from 24h volume
-      // Assumption: average tx value is 0.1% of market cap
-      const estimatedAvgTxValue = marketCap > 0 ? marketCap * 0.001 : price * 100;
+      // Improved heuristic: Use a tiered approach based on market cap
+      // Large caps (>$10B): avg tx = 0.05% of market cap
+      // Mid caps ($1B-$10B): avg tx = 0.1% of market cap  
+      // Small caps (<$1B): avg tx = price * 10 (smaller transactions)
+      let estimatedAvgTxValue: number;
+      if (marketCap > 10_000_000_000) {
+        // Large cap: assume larger average transactions
+        estimatedAvgTxValue = marketCap * 0.0005; // 0.05%
+      } else if (marketCap > 1_000_000_000) {
+        // Mid cap
+        estimatedAvgTxValue = marketCap * 0.001; // 0.1%
+      } else if (marketCap > 0) {
+        // Small cap: use supply-based estimate
+        estimatedAvgTxValue = (circulatingSupply > 0 && price > 0) 
+          ? (circulatingSupply * price * 0.01) 
+          : price * 10;
+      } else {
+        // Fallback
+        estimatedAvgTxValue = price * 100;
+      }
+      
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
       const annualTxCount = Math.round(dailyTxCount * 365);
       const annualTxValue = volume24h * 365;
@@ -129,12 +149,15 @@ export class CoinGeckoAPICollector {
 
     if (metrics.annualTxCount === 0) {
       warnings.push('No transaction data available');
+    } else {
+      warnings.push('Transaction count estimated using volume-based heuristics - confidence MEDIUM');
     }
 
     if (metrics.developers === 0) {
       warnings.push('No developer data available');
     }
 
+    // Mark confidence as MEDIUM due to estimation heuristics
     return {
       isValid: errors.length === 0,
       confidence: 'MEDIUM',

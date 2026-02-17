@@ -146,14 +146,35 @@ export class CoinGeckoMCPCollector {
 
   /**
    * Estimate annual transaction count
-   * Note: This is an estimation based on supply and market activity
+   * Note: This is an estimation based on volume and market activity
+   * Improved heuristic: Uses volume-based estimation instead of supply-based
    */
   private estimateAnnualTxCount(data: any): number {
     const marketData = data.market_data || {};
+    const volume24h = marketData.total_volume?.usd || 0;
+    const marketCap = marketData.market_cap?.usd || 0;
+    const price = marketData.current_price?.usd || 0;
     const circulatingSupply = marketData.circulating_supply || 0;
     
-    // Rough estimate: assume 2x supply as annual transactions
-    // This varies greatly by coin - actual blockchain data would be more accurate
+    // If we have volume data, estimate from that
+    if (volume24h > 0 && marketCap > 0) {
+      // Use tiered approach based on market cap
+      let estimatedAvgTxValue: number;
+      if (marketCap > 10_000_000_000) {
+        estimatedAvgTxValue = marketCap * 0.0005; // 0.05% for large caps
+      } else if (marketCap > 1_000_000_000) {
+        estimatedAvgTxValue = marketCap * 0.001; // 0.1% for mid caps
+      } else {
+        estimatedAvgTxValue = (circulatingSupply > 0 && price > 0)
+          ? (circulatingSupply * price * 0.01)
+          : price * 10;
+      }
+      
+      const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
+      return Math.round(dailyTxCount * 365);
+    }
+    
+    // Fallback: rough estimate based on supply (conservative)
     return circulatingSupply * 2;
   }
 
@@ -209,7 +230,7 @@ export class CoinGeckoMCPCollector {
 
     // Note about estimated values
     if (metrics.annualTxValue || metrics.annualTxCount) {
-      issues.push('Transaction metrics are estimated - consider using blockchain explorer data for accuracy');
+      issues.push('Transaction metrics are estimated using volume-based heuristics - consider using blockchain explorer data for accuracy');
       if (confidence === 'HIGH') confidence = 'MEDIUM';
     }
 

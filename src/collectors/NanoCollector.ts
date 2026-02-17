@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
+import { calculateDaysLive } from '../config/blockchainConfig.js';
 
 /**
  * Nano Collector
@@ -98,16 +99,17 @@ export class NanoCollector {
       const currentPrice = price?.quotes.USD.price || 0;
 
       // Calculate daily transaction rate
-      // Nano has been live since 2015, approximately 9 years = 3285 days
-      const daysLive = 3285;
+      // Nano launched in March 2015, calculate daysLive dynamically
+      const daysLive = calculateDaysLive('XNO');
       const blocksPerDay = totalBlocks / daysLive;
 
       // Annual transaction count (blocks per day * 365)
       const annualTxCount = Math.round(blocksPerDay * 365);
 
       // Estimate transaction value
-      // Method: Assume 5% of supply moves annually (conservative)
-      const supplyVelocity = 0.05;
+      // Method: Assume 5% of supply moves annually (conservative velocity estimate)
+      // Note: This is a heuristic. Real on-chain volume data would be more accurate.
+      const supplyVelocity = 0.05; // 5% annual velocity - conservative estimate for fast finality chains
       const annualSupplyMovement = circulatingSupply * supplyVelocity;
       const annualTxValue = annualSupplyMovement * currentPrice;
 
@@ -118,9 +120,10 @@ export class NanoCollector {
         annualTxCount,
         annualTxValue,
         avgTxValue,
-        confidence: 'HIGH',
+        confidence: 'MEDIUM', // MEDIUM confidence due to velocity estimation heuristic
         sources: ['Nano RPC (SomeNano)', 'Blockchain Data'],
-        timestamp: new Date()
+        timestamp: new Date(),
+        issues: ['Transaction value estimated using 5% annual velocity heuristic']
       };
     } catch (error) {
       throw new Error(`Failed to get Nano metrics: ${error instanceof Error ? error.message : String(error)}`);

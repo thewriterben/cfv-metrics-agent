@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import { APIServer } from './api/server.js';
 import { CollectionScheduler } from './scheduler/CollectionScheduler.js';
 import { initializeDatabase } from './database/initDatabase.js';
+import { validateAndReportEnvironment } from './utils/validateEnv.js';
 
 /**
  * CFV Metrics Agent - Main Application
@@ -15,6 +16,9 @@ import { initializeDatabase } from './database/initDatabase.js';
 
 // Load environment variables
 dotenv.config();
+
+// Validate environment variables
+validateAndReportEnvironment();
 
 // Configuration
 // Parse database configuration from MYSQL_URL or individual variables

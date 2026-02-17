@@ -73,8 +73,11 @@ export class CoinGeckoAPICollector {
       // Assume average tx value is proportional to market activity
       // For most coins, avgTxValue ranges from $100 to $10,000
       // This is still an estimate - real blockchain data would be more accurate
+      //
+      // Clamping logic: First cap at $10k, then ensure minimum $100
+      // Result: min($100, max($10k, marketCap * 0.0001))
       const estimatedAvgTxValue = marketCap > 0 
-        ? Math.max(100, Math.min(marketCap * 0.0001, 10000)) // Between $100 and $10k
+        ? Math.max(100, Math.min(marketCap * 0.0001, 10000)) // Clamp between $100 and $10k
         : price * 100;
       
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
@@ -149,9 +152,10 @@ export class CoinGeckoAPICollector {
     }
 
     // Mark confidence as LOW due to transaction estimation heuristics
+    // Both estimated data and missing data warrant LOW confidence
     return {
       isValid: errors.length === 0,
-      confidence: (metrics.annualTxCount && metrics.annualTxCount > 0) ? 'LOW' : 'MEDIUM',
+      confidence: 'LOW',
       issues: [...errors, ...warnings]
     };
   }

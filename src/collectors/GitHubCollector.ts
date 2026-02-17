@@ -8,6 +8,10 @@ import type {
   GitHubRepository,
   GitHubContributor,
 } from '../types';
+import { RateLimiter } from '../utils/RateLimiter.js';
+import { CircuitBreaker } from '../utils/CircuitBreaker.js';
+import { RequestCoalescer } from '../utils/RequestCoalescer.js';
+import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
 
 export class GitHubCollector implements MetricCollector {
   name = 'GitHub';
@@ -21,7 +25,13 @@ export class GitHubCollector implements MetricCollector {
   private errorCount = 0;
   private requestCount = 0;
   
-  constructor(token?: string) {
+  // Rate limiting and protection
+  private rateLimiter: RateLimiter;
+  private circuitBreaker: CircuitBreaker;
+  private coalescer: RequestCoalescer<any>;
+  private monitor: RateLimitMonitor;
+  
+  constructor(token?: string, rateLimiter?: RateLimiter, monitor?: RateLimitMonitor) {
     this.token = token;
     this.client = axios.create({
       baseURL: this.baseURL,
@@ -33,21 +43,37 @@ export class GitHubCollector implements MetricCollector {
         'Accept': 'application/vnd.github.v3+json',
       },
     });
+    
+    // Initialize rate limiting and protection components
+    const coalescerTTL = parseInt(process.env.REQUEST_COALESCER_TTL || '5000');
+    this.rateLimiter = rateLimiter || new RateLimiter();
+    this.circuitBreaker = new CircuitBreaker();
+    this.coalescer = new RequestCoalescer(coalescerTTL);
+    this.monitor = monitor || new RateLimitMonitor();
   }
   
   async collect(coin: string, metric: MetricType): Promise<MetricResult> {
-    try {
-      this.requestCount++;
-      
-      if (metric !== 'developers') {
-        throw new Error(`Metric ${metric} not supported by GitHub collector`);
-      }
-      
-      return await this.collectDevelopers(coin);
-    } catch (error) {
-      this.errorCount++;
-      throw error;
-    }
+    const key = `github:${coin}:${metric}`;
+    
+    return this.coalescer.coalesce(key, async () => {
+      return this.circuitBreaker.execute(async () => {
+        return this.rateLimiter.schedule('github', async () => {
+          try {
+            this.requestCount++;
+            this.monitor.incrementUsage('github');
+            
+            if (metric !== 'developers') {
+              throw new Error(`Metric ${metric} not supported by GitHub collector`);
+            }
+            
+            return await this.collectDevelopers(coin);
+          } catch (error) {
+            this.errorCount++;
+            throw error;
+          }
+        });
+      });
+    });
   }
   
   async supports(coin: string): Promise<boolean> {

@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import { TransactionMetrics } from '../types/index.js';
+import { logger } from './logger.js';
 
 /**
  * Enhanced Cache Manager with Multi-Tier Strategy
@@ -74,7 +75,7 @@ export class EnhancedCacheManager {
       this.redis = new Redis(url, {
         retryStrategy: (times) => {
           if (times > 3) {
-            console.error('Redis connection failed after 3 retries');
+            logger.error('Redis connection failed after 3 retries');
             return null;
           }
           return Math.min(times * 1000, 3000);
@@ -83,14 +84,14 @@ export class EnhancedCacheManager {
       });
 
       this.redis.on('connect', () => {
-        console.log('✅ Redis connected');
+        logger.info('Redis connected');
       });
 
       this.redis.on('error', (error) => {
-        console.error('Redis error:', error.message);
+        logger.error('Redis error', { error: error.message });
       });
     } catch (error) {
-      console.error('Failed to initialize Redis:', error);
+      logger.error('Failed to initialize Redis', { error });
       this.redis = null;
     }
   }
@@ -126,7 +127,7 @@ export class EnhancedCacheManager {
         }
         this.stats.redisMisses++;
       } catch (error) {
-        console.error('Redis get error:', error);
+        logger.error('Redis get error', { error });
       }
     }
 
@@ -153,7 +154,7 @@ export class EnhancedCacheManager {
           JSON.stringify(value)
         );
       } catch (error) {
-        console.error('Redis set error:', error);
+        logger.error('Redis set error', { error });
       }
     }
   }
@@ -197,7 +198,7 @@ export class EnhancedCacheManager {
       try {
         await this.redis.del(this.prefixKey(key));
       } catch (error) {
-        console.error('Redis delete error:', error);
+        logger.error('Redis delete error', { error });
       }
     }
   }
@@ -215,7 +216,7 @@ export class EnhancedCacheManager {
           await this.redis.del(...keys);
         }
       } catch (error) {
-        console.error('Redis clear error:', error);
+        logger.error('Redis clear error', { error });
       }
     }
   }

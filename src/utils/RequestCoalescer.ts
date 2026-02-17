@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 /**
  * Request Coalescing
  * 
@@ -40,18 +42,18 @@ export class RequestCoalescer<T = any> {
     // Check cache first
     const cached = this.cache.get(key);
     if (cached && Date.now() < cached.expiry) {
-      console.log(`[RequestCoalescer] Cache hit for key: ${key}`);
+      logger.info("RequestCoalescer: Cache hit", { key });
       return cached.data;
     }
 
     // Check if request is already pending
     if (this.pending.has(key)) {
-      console.log(`[RequestCoalescer] Request already pending for key: ${key}`);
+      logger.info("RequestCoalescer: Request already pending", { key });
       return this.pending.get(key)!;
     }
 
     // Execute request
-    console.log(`[RequestCoalescer] Executing new request for key: ${key}`);
+    logger.info("RequestCoalescer: Executing new request", { key });
     const promise = fn()
       .then(data => {
         // Cache the result
@@ -79,7 +81,7 @@ export class RequestCoalescer<T = any> {
    */
   invalidate(key: string): void {
     this.cache.delete(key);
-    console.log(`[RequestCoalescer] Invalidated cache for key: ${key}`);
+    logger.info("RequestCoalescer: Invalidated cache", { key });
   }
 
   /**
@@ -93,7 +95,7 @@ export class RequestCoalescer<T = any> {
         count++;
       }
     }
-    console.log(`[RequestCoalescer] Invalidated ${count} cache entries matching pattern`);
+    logger.info("RequestCoalescer: Invalidated cache entries", { count, pattern: "matching" });
   }
 
   /**
@@ -102,7 +104,7 @@ export class RequestCoalescer<T = any> {
   clear(): void {
     this.cache.clear();
     this.pending.clear();
-    console.log('[RequestCoalescer] Cleared all cache and pending requests');
+    logger.info('RequestCoalescer: Cleared all cache and pending requests');
   }
 
   /**
@@ -114,7 +116,7 @@ export class RequestCoalescer<T = any> {
       this.cleanupInterval = null;
     }
     this.clear();
-    console.log('[RequestCoalescer] Disposed');
+    logger.info('RequestCoalescer: Disposed');
   }
 
   /**
@@ -132,7 +134,7 @@ export class RequestCoalescer<T = any> {
     }
 
     if (cleaned > 0) {
-      console.log(`[RequestCoalescer] Cleaned up ${cleaned} expired cache entries`);
+      logger.info("RequestCoalescer: Cleaned up expired cache entries", { cleaned });
     }
   }
 

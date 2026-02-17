@@ -1,6 +1,25 @@
 import { describe, it, expect, beforeEach } from '@jest/globals';
 import { createKeyRateLimiter } from '../../../middleware/rateLimitByKey.js';
 
+// Helper functions to create mock objects
+function createMockRequest(overrides: any = {}) {
+  return {
+    path: '/api/test',
+    method: 'GET',
+    ...overrides,
+  };
+}
+
+function createMockResponse() {
+  return {
+    statusCode: 0,
+    body: null as any,
+    status: function(code: number) { this.statusCode = code; return this; },
+    json: function(data: any) { this.body = data; return this; },
+    setHeader: function() { return this; },
+  };
+}
+
 describe('Rate Limit By Key Middleware', () => {
   describe('createKeyRateLimiter', () => {
     it('should allow requests under the limit', () => {
@@ -9,16 +28,8 @@ describe('Rate Limit By Key Middleware', () => {
         maxRequests: 5,
       });
 
-      const mockReq: any = {
-        apiKey: 'test-key-1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-        setHeader: function() { return this; },
-      };
+      const mockReq: any = createMockRequest({ apiKey: 'test-key-1' });
+      const mockRes: any = createMockResponse();
       let callCount = 0;
       const mockNext = () => { callCount++; };
 
@@ -35,16 +46,8 @@ describe('Rate Limit By Key Middleware', () => {
         maxRequests: 3,
       });
 
-      const mockReq: any = {
-        apiKey: 'test-key-2',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-        setHeader: function() { return this; },
-      };
+      const mockReq: any = createMockRequest({ apiKey: 'test-key-2' });
+      const mockRes: any = createMockResponse();
       let callCount = 0;
       const mockNext = () => { callCount++; };
 
@@ -65,27 +68,11 @@ describe('Rate Limit By Key Middleware', () => {
       let callCount = 0;
       const mockNext = () => { callCount++; };
 
-      const mockReq1: any = {
-        apiKey: 'test-key-1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes1: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-        setHeader: function() { return this; },
-      };
+      const mockReq1: any = createMockRequest({ apiKey: 'test-key-1' });
+      const mockRes1: any = createMockResponse();
 
-      const mockReq2: any = {
-        apiKey: 'test-key-2',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes2: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-        setHeader: function() { return this; },
-      };
+      const mockReq2: any = createMockRequest({ apiKey: 'test-key-2' });
+      const mockRes2: any = createMockResponse();
 
       limiter(mockReq1, mockRes1, mockNext);
       limiter(mockReq1, mockRes1, mockNext);
@@ -101,16 +88,8 @@ describe('Rate Limit By Key Middleware', () => {
         maxRequests: 2,
       });
 
-      const mockReq: any = {
-        ip: '192.168.1.1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-        setHeader: function() { return this; },
-      };
+      const mockReq: any = createMockRequest({ ip: '192.168.1.1' });
+      const mockRes: any = createMockResponse();
       let callCount = 0;
       const mockNext = () => { callCount++; };
 

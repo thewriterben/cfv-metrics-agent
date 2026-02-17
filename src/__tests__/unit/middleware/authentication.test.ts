@@ -1,6 +1,26 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import { requireAuth, requireAdmin, optionalAuth } from '../../../middleware/authentication.js';
 
+// Helper functions to create mock objects
+function createMockRequest(overrides: any = {}) {
+  return {
+    get: () => undefined,
+    ip: '127.0.0.1',
+    path: '/api/test',
+    method: 'GET',
+    ...overrides,
+  };
+}
+
+function createMockResponse() {
+  return {
+    statusCode: 0,
+    body: null as any,
+    status: function(code: number) { this.statusCode = code; return this; },
+    json: function(data: any) { this.body = data; return this; },
+  };
+}
+
 describe('Authentication Middleware', () => {
   let originalEnv: NodeJS.ProcessEnv;
 
@@ -16,16 +36,10 @@ describe('Authentication Middleware', () => {
 
   describe('requireAuth', () => {
     it('should allow valid API key via X-API-Key header', () => {
-      const mockReq: any = {
+      const mockReq: any = createMockRequest({
         get: (header: string) => header === 'X-API-Key' ? 'test-key-1' : undefined,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-      };
+      });
+      const mockRes: any = createMockResponse();
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };
 
@@ -37,16 +51,8 @@ describe('Authentication Middleware', () => {
     });
 
     it('should reject request with no API key', () => {
-      const mockReq: any = {
-        get: () => undefined,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-      };
+      const mockReq: any = createMockRequest();
+      const mockRes: any = createMockResponse();
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };
 
@@ -57,16 +63,10 @@ describe('Authentication Middleware', () => {
     });
 
     it('should allow admin API key and set isAdmin flag', () => {
-      const mockReq: any = {
+      const mockReq: any = createMockRequest({
         get: (header: string) => header === 'X-API-Key' ? 'admin-key-1' : undefined,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-      };
+      });
+      const mockRes: any = createMockResponse();
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };
 
@@ -80,17 +80,11 @@ describe('Authentication Middleware', () => {
 
   describe('requireAdmin', () => {
     it('should allow authenticated admin user', () => {
-      const mockReq: any = {
+      const mockReq: any = createMockRequest({
         apiKey: 'admin-key-1',
         isAdmin: true,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-      };
+      });
+      const mockRes: any = createMockResponse();
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };
 
@@ -100,17 +94,11 @@ describe('Authentication Middleware', () => {
     });
 
     it('should reject non-admin authenticated user', () => {
-      const mockReq: any = {
+      const mockReq: any = createMockRequest({
         apiKey: 'test-key-1',
         isAdmin: false,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
-      const mockRes: any = {
-        status: function(code: number) { this.statusCode = code; return this; },
-        json: function(data: any) { this.body = data; return this; },
-      };
+      });
+      const mockRes: any = createMockResponse();
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };
 
@@ -123,12 +111,9 @@ describe('Authentication Middleware', () => {
 
   describe('optionalAuth', () => {
     it('should add auth info for valid API key', () => {
-      const mockReq: any = {
+      const mockReq: any = createMockRequest({
         get: (header: string) => header === 'X-API-Key' ? 'test-key-1' : undefined,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
+      });
       const mockRes: any = {};
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };
@@ -141,12 +126,7 @@ describe('Authentication Middleware', () => {
     });
 
     it('should continue without auth info when no API key provided', () => {
-      const mockReq: any = {
-        get: () => undefined,
-        ip: '127.0.0.1',
-        path: '/api/test',
-        method: 'GET',
-      };
+      const mockReq: any = createMockRequest();
       const mockRes: any = {};
       let nextCalled = false;
       const mockNext = () => { nextCalled = true; };

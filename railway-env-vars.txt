@@ -53,10 +53,15 @@ HEALTH_CHECK_INTERVAL=60
 # ============================================================================
 
 # ============================================================================
-# STEP 3: Initialize Database
-# After deployment, run this command using Railway CLI:
-# railway run npm run db:init
-# Or manually connect and run database/schema.sql
+# STEP 3: Database Initialization
+# The database schema is automatically initialized on first application startup
+# using the migration system. No manual initialization needed!
+# 
+# The migration system:
+# - Creates tables safely without dropping existing data
+# - Tracks schema versions
+# - Is idempotent (safe to run multiple times)
+# - Preserves all historical data
 # ============================================================================
 
 # ============================================================================

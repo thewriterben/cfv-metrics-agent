@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
+import { getNetworkDaysLive } from '../utils/networkLifetime.js';
 
 /**
  * Nano Collector
@@ -116,8 +117,7 @@ export class NanoCollector {
       const circulatingSupply = this.rawToNano(supply.available);
       const currentPrice = price?.quotes.USD.price || 0;
 
-      // Calculate daily transaction rate using dynamic days live calculation
-      const daysLive = this.calculateDaysLive();
+
       const blocksPerDay = totalBlocks / daysLive;
 
       // Annual transaction count (blocks per day * 365)

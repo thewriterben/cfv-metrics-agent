@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
+import { getNetworkDaysLive } from '../utils/networkLifetime.js';
 
 /**
  * NEAR Protocol Collector
@@ -77,8 +78,7 @@ export class NEARCollector {
       const volume24h = parseFloat(stats.volume);
       const tps = stats.tps;
 
-      // Calculate annual metrics using dynamic days live calculation
-      const daysLive = this.calculateDaysLive();
+
       const txnsPerDay = totalTxns / daysLive;
       const annualTxCount = Math.round(txnsPerDay * NEARCollector.DAYS_PER_YEAR);
 

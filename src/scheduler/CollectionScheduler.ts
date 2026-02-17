@@ -21,7 +21,7 @@ export interface SchedulerConfig {
   intervalMinutes: number; // Collection interval in minutes
   delayBetweenCoins: number; // Delay between coin collections in ms (deprecated, kept for backward compatibility)
   concurrency?: {
-    [source: string]: number; // Allow any source key with number value
+    [source: string]: number; // Allow any source key for flexibility with new data sources
     '3xpl': number;
     'coingecko': number;
     'custom-dash': number;

@@ -1,5 +1,6 @@
 import { BlockchainDataCollector } from './collectors/BlockchainDataCollector.js';
 import { executeBatchedConcurrent } from './utils/concurrency.js';
+import type { TransactionMetrics } from './types/index.js';
 
 /**
  * Test Concurrency - Compare Sequential vs Concurrent Collection
@@ -10,12 +11,19 @@ import { executeBatchedConcurrent } from './utils/concurrency.js';
 
 const TEST_COINS = ['BTC', 'ETH', 'DASH', 'DGB', 'XEC'];
 
+interface CollectionResult {
+  coin: string;
+  success: boolean;
+  metrics?: TransactionMetrics;
+  error?: Error;
+}
+
 async function testSequential(collector: BlockchainDataCollector) {
   console.log('\n🐌 SEQUENTIAL COLLECTION (Old Method)');
   console.log('='.repeat(70));
   
   const startTime = Date.now();
-  const results: any[] = [];
+  const results: CollectionResult[] = [];
   
   for (const coin of TEST_COINS) {
     try {
@@ -29,7 +37,11 @@ async function testSequential(collector: BlockchainDataCollector) {
       }
     } catch (error) {
       console.log(`  ❌ ${coin} failed`);
-      results.push({ coin, success: false, error });
+      results.push({ 
+        coin, 
+        success: false, 
+        error: error instanceof Error ? error : new Error(String(error))
+      });
     }
   }
   
@@ -66,7 +78,12 @@ async function testConcurrent(collector: BlockchainDataCollector) {
   const startTime = Date.now();
   
   // Create task groups
-  const taskGroups: Record<string, Array<() => Promise<any>>> = {};
+  interface ConcurrentCollectionResult {
+    coin: string;
+    metrics: TransactionMetrics;
+  }
+  
+  const taskGroups: Record<string, Array<() => Promise<ConcurrentCollectionResult>>> = {};
   const concurrencyLimits: Record<string, number> = {
     '3xpl': 3,
     'coingecko': 5,
@@ -78,22 +95,36 @@ async function testConcurrent(collector: BlockchainDataCollector) {
   
   for (const [source, coins] of Object.entries(coinsBySource)) {
     taskGroups[source] = coins.map(coin => async () => {
-      try {
-        console.log(`  Collecting ${coin} from ${source}...`);
-        const metrics = await collector.getTransactionMetrics(coin);
-        return { coin, success: true, metrics };
-      } catch (error) {
-        console.log(`  ❌ ${coin} failed`);
-        return { coin, success: false, error };
-      }
+      console.log(`  Collecting ${coin} from ${source}...`);
+      const metrics = await collector.getTransactionMetrics(coin);
+      return { coin, metrics };
     });
   }
   
   // Execute with concurrency
   const resultsBySource = await executeBatchedConcurrent(taskGroups, concurrencyLimits);
   
-  // Flatten results
-  const results = Object.values(resultsBySource).flat();
+  // Flatten results into CollectionResult format
+  const results: CollectionResult[] = [];
+  for (const sourceResults of Object.values(resultsBySource)) {
+    for (const result of sourceResults) {
+      if (result.success) {
+        results.push({
+          coin: result.value.coin,
+          success: true,
+          metrics: result.value.metrics
+        });
+      } else {
+        console.log(`  ❌ ${result.error.message}`);
+        results.push({
+          coin: 'unknown',
+          success: false,
+          error: result.error
+        });
+      }
+    }
+  }
+  
   const duration = Date.now() - startTime;
   const successful = results.filter(r => r.success).length;
   

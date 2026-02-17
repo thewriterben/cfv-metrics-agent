@@ -5,6 +5,7 @@ import { DashApiClient } from './DashApiClient.js';
 import { NanoCollector } from './NanoCollector.js';
 import { NEARCollector } from './NEARCollector.js';
 import { ICPCollector } from './ICPCollector.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Unified Blockchain Data Collector
@@ -87,7 +88,10 @@ export class BlockchainDataCollector {
         try {
           metrics = await this.threexplCollector.collectMetrics(coinSymbol);
         } catch (error) {
-          console.warn(`3xpl failed for ${coinSymbol}, falling back to CoinGecko:`, error);
+          logger.warn('3xpl failed, falling back to CoinGecko', { 
+            coinSymbol,
+            error: error instanceof Error ? error.message : String(error) 
+          });
           const simpleMetrics = await this.coingeckoCollector.collectMetrics(coinSymbol);
           metrics = this.convertToTransactionMetrics(simpleMetrics);
         }
@@ -105,7 +109,10 @@ export class BlockchainDataCollector {
       return metrics;
     } catch (error) {
       // If primary source fails, try fallback
-      console.warn(`Primary source failed for ${coinSymbol}, trying fallback:`, error);
+      logger.warn('Primary source failed, trying fallback', { 
+        coinSymbol,
+        error: error instanceof Error ? error.message : String(error) 
+      });
       
       try {
         const simpleMetrics = await this.coingeckoCollector.collectMetrics(coinSymbol);

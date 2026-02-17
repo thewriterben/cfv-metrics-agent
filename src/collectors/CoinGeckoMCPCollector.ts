@@ -8,6 +8,7 @@ import {
   STARS_WEIGHT_DIVISOR,
   FORKS_WEIGHT_DIVISOR,
 } from '../utils/CommunityConstants.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * CoinGecko MCP Collector
@@ -61,9 +62,9 @@ export class CoinGeckoMCPCollector {
       // Connect
       await this.client.connect(this.transport);
       this.isConnected = true;
-      console.log('✅ Connected to CoinGecko MCP server');
+      logger.info('Connected to CoinGecko MCP server');
     } catch (error) {
-      console.error('❌ Failed to connect to CoinGecko MCP:', error);
+      logger.error('Failed to connect to CoinGecko MCP', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     }
   }
@@ -75,7 +76,7 @@ export class CoinGeckoMCPCollector {
     if (this.client && this.isConnected) {
       await this.client.close();
       this.isConnected = false;
-      console.log('🔌 Disconnected from CoinGecko MCP server');
+      logger.info('Disconnected from CoinGecko MCP server');
     }
   }
 
@@ -131,7 +132,10 @@ export class CoinGeckoMCPCollector {
 
       return metrics;
     } catch (error) {
-      console.error(`❌ Error collecting metrics for ${symbol}:`, error);
+      logger.error('Error collecting metrics', { 
+        symbol,
+        error: error instanceof Error ? error.message : String(error) 
+      });
       throw error;
     }
   }

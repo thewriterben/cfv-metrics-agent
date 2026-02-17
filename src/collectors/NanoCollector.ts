@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
-import { getNetworkDaysLive } from '../utils/networkLifetime.js';
+
 
 /**
  * Nano Collector
@@ -124,10 +124,7 @@ export class NanoCollector {
       const annualTxCount = Math.round(blocksPerDay * NanoCollector.DAYS_PER_YEAR);
 
       // Estimate transaction value
-      // HEURISTIC: Assume 5% velocity (5% of supply moves annually)
-      // This is a conservative estimate based on typical cryptocurrency velocity
-      // Confidence: MEDIUM due to velocity estimation
-      const annualSupplyMovement = circulatingSupply * NanoCollector.SUPPLY_VELOCITY;
+
       const annualTxValue = annualSupplyMovement * currentPrice;
 
       // Average transaction value
@@ -140,16 +137,7 @@ export class NanoCollector {
         annualTxCount,
         annualTxValue,
         avgTxValue,
-        confidence: 'MEDIUM',
-        sources: ['Nano RPC (SomeNano)', 'Blockchain Data', 'Velocity Heuristic (5%)'],
-        timestamp: new Date(),
-        issues,
-        metadata: {
-          daysLive,
-          genesisDate: NanoCollector.GENESIS_DATE,
-          supplyVelocity: NanoCollector.SUPPLY_VELOCITY,
-          velocityNote: 'Estimated using conservative 5% annual velocity'
-        }
+
       };
     } catch (error) {
       throw new Error(`Failed to get Nano metrics: ${error instanceof Error ? error.message : String(error)}`);

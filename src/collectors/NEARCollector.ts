@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
-import { getNetworkDaysLive } from '../utils/networkLifetime.js';
+
 
 /**
  * NEAR Protocol Collector

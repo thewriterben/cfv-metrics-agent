@@ -23,6 +23,19 @@ export class CoinGeckoAPICollector {
   private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
   private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
 
+  // Transaction estimation constants
+  // Rationale: Different market cap tiers have different transaction patterns
+  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
+  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
+  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;      // 0.05% of market cap
+  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
+  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
+  private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
+  private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
+  // Note: Small cap uses 1% (not 5% like Nano's annual velocity) because this represents
+  // the supply fraction moved in an average transaction. Multiple transactions throughout
+  // the year result in higher cumulative velocity.
+
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
     // Use demo API endpoint
@@ -110,34 +123,9 @@ export class CoinGeckoAPICollector {
       const volume24h = marketData.total_volume?.usd || 0;
       const marketCap = marketData.market_cap?.usd || 0;
       const price = marketData.current_price?.usd || 0;
+      const circulatingSupply = marketData.circulating_supply || 0;
 
-      // HEURISTIC: Estimate annual transactions from 24h volume
-      // avgTxValue estimation is crude and varies significantly by coin:
-      // - For high-cap coins (BTC, ETH): transactions tend to be larger
-      // - For smaller coins: transactions tend to be smaller
-      // 
-      // Old approach: Used marketCap * 0.001 (0.1%) unbounded, causing issues:
-      //   - For BTC (~$1T market cap): avgTxValue = $1B (way too high)
-      //   - Led to massive underestimation of transaction counts
-      // 
-      // Improved heuristic: Use bounded calculation
-      // - Start with marketCap * 0.0001 (0.01%) as base estimate
-      // - Clamp result between $100 and $10,000 (realistic transaction values)
-      // - The bounds prevent extreme values from market cap variations
-      // - This is still an estimate - real blockchain data would be more accurate
-      const estimatedAvgTxValue = marketCap > 0 
-        ? Math.max(
-            CoinGeckoAPICollector.MIN_AVG_TX_VALUE, 
-            Math.min(
-              marketCap * CoinGeckoAPICollector.MARKET_CAP_RATIO, 
-              CoinGeckoAPICollector.MAX_AVG_TX_VALUE
-            )
-          )
-        : price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER; // Fallback when no market cap data
-      
-      const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
-      const annualTxCount = Math.round(dailyTxCount * CoinGeckoAPICollector.DAYS_PER_YEAR);
-      const annualTxValue = volume24h * CoinGeckoAPICollector.DAYS_PER_YEAR;
+
 
       // Developer activity
       const developers = developerData.forks || 0;
@@ -198,16 +186,14 @@ export class CoinGeckoAPICollector {
 
     if (metrics.annualTxCount === 0) {
       warnings.push('No transaction data available');
-    } else if (metrics.annualTxCount) {
-      warnings.push('Transaction count estimated using volume-based heuristic - real blockchain data recommended for accuracy');
+
     }
 
     if (metrics.developers === 0) {
       warnings.push('No developer data available');
     }
 
-    // Mark confidence as LOW due to transaction estimation heuristics
-    // Both estimated data and missing data warrant LOW confidence
+
     return {
       isValid: errors.length === 0,
       confidence: 'LOW',

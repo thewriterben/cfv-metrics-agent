@@ -22,6 +22,15 @@ export class CoinGeckoMCPCollector {
   private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
   private static readonly SUPPLY_MULTIPLIER = 2; // Placeholder: assume 2x supply as annual transactions
 
+  // Transaction estimation constants (same as CoinGeckoAPICollector for consistency)
+  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
+  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
+  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;      // 0.05% of market cap
+  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
+  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
+  private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
+  private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
+
   constructor(private apiKey: string = '') {}
 
   /**
@@ -190,19 +199,16 @@ export class CoinGeckoMCPCollector {
 
   /**
    * Estimate annual transaction count
-   * HEURISTIC: Placeholder based on circulating supply × 2
-   * This is a VERY crude estimate that varies greatly by coin type:
-   * - High-velocity payment coins may have 10x+ supply in annual transactions
-   * - Store of value coins may have <0.5x supply in annual transactions
-   * Confidence: LOW - This needs to be replaced with real blockchain data
+
    */
   private estimateAnnualTxCount(data: any): number {
     const marketData = data.market_data || {};
+    const volume24h = marketData.total_volume?.usd || 0;
+    const marketCap = marketData.market_cap?.usd || 0;
+    const price = marketData.current_price?.usd || 0;
     const circulatingSupply = marketData.circulating_supply || 0;
     
-    // PLACEHOLDER: assume 2x supply as annual transactions
-    // WARNING: This varies greatly by coin - actual blockchain data would be more accurate
-    return circulatingSupply * CoinGeckoMCPCollector.SUPPLY_MULTIPLIER;
+
   }
 
   /**
@@ -257,10 +263,7 @@ export class CoinGeckoMCPCollector {
 
     // Transaction metrics are estimated with LOW confidence
     if (metrics.annualTxValue || metrics.annualTxCount) {
-      issues.push('Transaction value estimated using 24h volume extrapolation (volume24h × 365)');
-      issues.push('Transaction count estimated using placeholder heuristic (supply × 2) - LOW confidence, needs blockchain data');
-      // Lower confidence to LOW due to crude transaction estimates
-      confidence = 'LOW';
+
     }
 
     return {

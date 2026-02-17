@@ -9,10 +9,11 @@ An intelligent AI agent built with GitHub Copilot SDK that gathers accurate cryp
 - **Data Validation**: Cross-validates data from multiple sources with confidence scoring
 - **Intelligent Caching**: Redis-based caching to minimize API calls and improve performance
 - **70/10/10/10 Formula**: Calculates fair value based on:
-  - Community Size (70%)
+  - Community Size (70%) - **Now uses composite scoring** (see [COMMUNITY_SCORING.md](./COMMUNITY_SCORING.md))
   - Annual Transaction Value (10%)
   - Annual Transaction Count (10%)
   - Developers (10%)
+- **Composite Community Scoring**: Weights on-chain activity (50%) > GitHub contributions (30%) > social metrics (20%) to prevent gaming
 - **Valuation Analysis**: Compares current price with fair value to determine if undervalued/overvalued
 - **Extensible Architecture**: Easy to add new data collectors and metrics
 
@@ -562,6 +563,15 @@ npm test
 - [ ] Dashboard UI
 - [ ] Multi-chain support expansion
 - [ ] Custom metric definitions
+
+## Documentation
+
+Detailed documentation for specific features:
+
+- **[COMMUNITY_SCORING.md](./COMMUNITY_SCORING.md)** - Composite community size calculation methodology
+- **[METRICS.md](./METRICS.md)** - CFV metrics and data sources
+- **[TESTING.md](./TESTING.md)** - Testing guide and coverage
+- **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Deployment instructions
 
 ## Contributing
 

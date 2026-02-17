@@ -1,12 +1,28 @@
-import type { CFVMetrics, CFVCalculation, ValuationStatus } from '../types';
+import type { CFVMetrics, CFVCalculation, ValuationStatus, CommunityWeights } from '../types';
 
 export class CFVCalculator {
   // Formula weights (70/10/10/10)
+  // Community size is weighted at 70% - this is the top-level weight
+  // Within community size, we apply composite scoring (see communityWeights)
   private static readonly WEIGHTS = {
     communitySize: 0.7,
     annualTransactionValue: 0.1,
     annualTransactions: 0.1,
     developers: 0.1,
+  };
+  
+  /**
+   * Composite community scoring weights
+   * Prioritizes harder-to-game metrics over vanity metrics
+   * 
+   * - onChain (50%): Unique addresses, active wallets - hardest to fake
+   * - github (30%): Contributors, meaningful activity - moderate difficulty
+   * - social (20%): Twitter/Reddit/Telegram - easiest to game
+   */
+  private static readonly DEFAULT_COMMUNITY_WEIGHTS: CommunityWeights = {
+    onChain: 0.5,
+    github: 0.3,
+    social: 0.2,
   };
   
   /**
@@ -197,5 +213,22 @@ export class CFVCalculator {
       case 'fairly valued':
         return `The current price is within ±20% of fair value, suggesting the market is fairly pricing the asset.`;
     }
+  }
+  
+  /**
+   * Get the CFV formula weights (70/10/10/10)
+   */
+  static getWeights() {
+    return { ...this.WEIGHTS };
+  }
+  
+  /**
+   * Get the default community composite scoring weights
+   * These weights determine how different community metrics are combined
+   * 
+   * @returns CommunityWeights object with onChain, github, and social weights
+   */
+  static getCommunityWeights(): CommunityWeights {
+    return { ...this.DEFAULT_COMMUNITY_WEIGHTS };
   }
 }

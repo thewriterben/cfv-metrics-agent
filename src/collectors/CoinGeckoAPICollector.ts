@@ -1,5 +1,12 @@
 import axios from 'axios';
 import type { SimpleCFVMetrics, DataSource, ValidationResult } from '../types/index.js';
+import { CFVCalculator } from '../utils/CFVCalculator.js';
+import {
+  CIRCULATING_SUPPLY_DIVISOR,
+  MAX_ONCHAIN_SCORE,
+  STARS_WEIGHT_DIVISOR,
+  FORKS_WEIGHT_DIVISOR,
+} from '../utils/CommunityConstants.js';
 
 /**
  * CoinGecko REST API Collector
@@ -52,11 +59,45 @@ export class CoinGeckoAPICollector {
       const communityData = data.community_data || {};
       const developerData = data.developer_data || {};
 
-      // Community Size (social media followers + active addresses)
+      // Community Size - Composite scoring approach
+      // Addresses issue: Reward real activity over vanity metrics
+      // Weights: onChain (50%), GitHub (30%), Social (20%)
+      
+      // Social metrics (easier to game)
       const twitterFollowers = communityData.twitter_followers || 0;
       const redditSubscribers = communityData.reddit_subscribers || 0;
       const telegramUsers = communityData.telegram_channel_user_count || 0;
-      const communitySize = twitterFollowers + redditSubscribers + telegramUsers;
+      
+      // GitHub metrics (moderate difficulty to game)
+      const contributors = developerData.contributors || 0;
+      const stars = developerData.stars || 0;
+      const forks = developerData.forks || 0;
+      
+      // Calculate component scores
+      const socialMetrics = [twitterFollowers, redditSubscribers, telegramUsers].filter(v => v > 0);
+      const socialScore = socialMetrics.length > 0 
+        ? socialMetrics.reduce((sum, val) => sum + val, 0) / socialMetrics.length 
+        : 0;
+      
+      const githubScore = contributors > 0 
+        ? contributors + (stars / STARS_WEIGHT_DIVISOR) + (forks / FORKS_WEIGHT_DIVISOR)
+        : 0;
+      
+      // On-chain estimation (CoinGecko doesn't provide this directly)
+      const circulatingSupply = marketData.circulating_supply || 0;
+      const onChainScore = circulatingSupply > 0 
+        ? Math.min(circulatingSupply / CIRCULATING_SUPPLY_DIVISOR, MAX_ONCHAIN_SCORE)
+        : 0;
+      
+      // Get community weights from CFVCalculator (single source of truth)
+      const weights = CFVCalculator.getCommunityWeights();
+      
+      // Apply composite weights
+      const communitySize = Math.round(
+        onChainScore * weights.onChain +
+        githubScore * weights.github +
+        socialScore * weights.social
+      );
 
       // Transaction metrics (estimated from volume)
       const volume24h = marketData.total_volume?.usd || 0;

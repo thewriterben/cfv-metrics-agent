@@ -1,4 +1,4 @@
-import { BlockchainDataCollector } from './collectors/BlockchainDataCollector.js';
+import { BlockchainDataCollector } from '../../collectors/BlockchainDataCollector.js';
 
 /**
  * Quick Test - 3 Coins with Conservative Rate Limiting

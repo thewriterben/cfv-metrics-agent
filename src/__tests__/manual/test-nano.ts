@@ -1,4 +1,4 @@
-import { BlockchainDataCollector } from './collectors/BlockchainDataCollector.js';
+import { BlockchainDataCollector } from '../../collectors/BlockchainDataCollector.js';
 
 /**
  * Test Nano Integration with BlockchainDataCollector

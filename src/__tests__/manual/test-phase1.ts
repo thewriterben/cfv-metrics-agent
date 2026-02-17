@@ -1,6 +1,6 @@
-import { BlockchainDataCollector } from './collectors/BlockchainDataCollector.js';
-import { EnhancedValidationEngine } from './validators/EnhancedValidationEngine.js';
-import { EnhancedCacheManager } from './utils/EnhancedCacheManager.js';
+import { BlockchainDataCollector } from '../../collectors/BlockchainDataCollector.js';
+import { EnhancedValidationEngine } from '../../validators/EnhancedValidationEngine.js';
+import { EnhancedCacheManager } from '../../utils/EnhancedCacheManager.js';
 
 /**
  * Phase 1 Integration Test

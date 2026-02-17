@@ -4,11 +4,11 @@
  */
 
 import * as dotenv from 'dotenv';
-import { CoinGeckoCollector } from './collectors/CoinGeckoCollector.js';
-import { GitHubCollector } from './collectors/GitHubCollector.js';
-import { ValidationEngine } from './validators/ValidationEngine.js';
-import { CFVCalculator } from './utils/CFVCalculator.js';
-import type { CFVMetrics, MetricResult } from './types/index.js';
+import { CoinGeckoCollector } from '../../collectors/CoinGeckoCollector.js';
+import { GitHubCollector } from '../../collectors/GitHubCollector.js';
+import { ValidationEngine } from '../../validators/ValidationEngine.js';
+import { CFVCalculator } from '../../utils/CFVCalculator.js';
+import type { CFVMetrics, MetricResult } from '../../types/index.js';
 
 // Load environment variables
 dotenv.config();

@@ -27,6 +27,7 @@ export interface RateLimitStatus {
 export class RateLimitMonitor {
   private metrics: Map<MonitoredService, RateLimitMetrics>;
   private readonly WARNING_THRESHOLD = 0.8; // 80% usage triggers warning
+  private resetInterval: NodeJS.Timeout | null = null;
 
   constructor() {
     this.metrics = new Map();
@@ -68,7 +69,7 @@ export class RateLimitMonitor {
    * Start automatic window reset timer
    */
   private startWindowResetTimer(): void {
-    setInterval(() => {
+    this.resetInterval = setInterval(() => {
       this.resetExpiredWindows();
     }, 1000); // Check every second
   }
@@ -236,5 +237,17 @@ export class RateLimitMonitor {
     const filled = Math.round((percentage / 100) * width);
     const empty = width - filled;
     return `[${'#'.repeat(filled)}${'-'.repeat(empty)}]`;
+  }
+
+  /**
+   * Dispose and clean up resources
+   */
+  dispose(): void {
+    if (this.resetInterval) {
+      clearInterval(this.resetInterval);
+      this.resetInterval = null;
+    }
+    this.metrics.clear();
+    console.log('[RateLimitMonitor] Disposed');
   }
 }

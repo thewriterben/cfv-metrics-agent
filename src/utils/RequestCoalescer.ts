@@ -14,12 +14,13 @@ export class RequestCoalescer<T = any> {
   private pending = new Map<string, Promise<T>>();
   private cache = new Map<string, CacheEntry<T>>();
   private defaultTTL: number;
+  private cleanupInterval: NodeJS.Timeout | null = null;
 
   constructor(defaultTTL: number = 5000) {
     this.defaultTTL = defaultTTL;
     
     // Clean up expired cache entries periodically
-    setInterval(() => this.cleanupExpiredCache(), 60000); // Every minute
+    this.cleanupInterval = setInterval(() => this.cleanupExpiredCache(), 60000); // Every minute
   }
 
   /**
@@ -102,6 +103,18 @@ export class RequestCoalescer<T = any> {
     this.cache.clear();
     this.pending.clear();
     console.log('[RequestCoalescer] Cleared all cache and pending requests');
+  }
+
+  /**
+   * Dispose and clean up resources
+   */
+  dispose(): void {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.clear();
+    console.log('[RequestCoalescer] Disposed');
   }
 
   /**

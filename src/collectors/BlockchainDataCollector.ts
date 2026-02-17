@@ -152,8 +152,9 @@ export class BlockchainDataCollector {
       annualTxValue: annualMetrics.annualTxValue,
       avgTxValue: annualMetrics.avgTxValue,
       confidence: annualMetrics.confidence as ConfidenceLevel,
-      sources: ['Dash Insight API', 'BlockCypher', 'CryptoID'],
-      timestamp: new Date()
+      sources: annualMetrics.sources,
+      timestamp: new Date(),
+      issues: annualMetrics.issues
     };
   }
 

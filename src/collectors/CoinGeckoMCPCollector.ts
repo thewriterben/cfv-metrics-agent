@@ -10,6 +10,10 @@ export class CoinGeckoMCPCollector {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private isConnected = false;
+  
+  // Transaction estimation constants
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
+  private static readonly SUPPLY_MULTIPLIER = 2; // Placeholder: assume 2x supply as annual transactions
 
   constructor(private apiKey: string = '') {}
 
@@ -143,7 +147,7 @@ export class CoinGeckoMCPCollector {
     
     // Estimate annual volume (365 days)
     // NOTE: This is a rough estimate - actual on-chain data would be more accurate
-    return volume24h * 365;
+    return volume24h * CoinGeckoMCPCollector.DAYS_PER_YEAR;
   }
 
   /**
@@ -160,7 +164,7 @@ export class CoinGeckoMCPCollector {
     
     // PLACEHOLDER: assume 2x supply as annual transactions
     // WARNING: This varies greatly by coin - actual blockchain data would be more accurate
-    return circulatingSupply * 2;
+    return circulatingSupply * CoinGeckoMCPCollector.SUPPLY_MULTIPLIER;
   }
 
   /**

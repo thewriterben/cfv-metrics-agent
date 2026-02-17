@@ -42,6 +42,10 @@ export class NanoCollector {
   
   // Nano (formerly RaiBlocks) genesis date
   private static readonly GENESIS_DATE = '2015-10-01';
+  
+  // Transaction estimation constants
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
+  private static readonly SUPPLY_VELOCITY = 0.05; // 5% annual velocity (conservative estimate)
 
   constructor(config: NanoCollectorConfig = {}) {
     this.endpoint = config.endpoint || 'https://node.somenano.com/proxy';
@@ -117,21 +121,20 @@ export class NanoCollector {
       const blocksPerDay = totalBlocks / daysLive;
 
       // Annual transaction count (blocks per day * 365)
-      const annualTxCount = Math.round(blocksPerDay * 365);
+      const annualTxCount = Math.round(blocksPerDay * NanoCollector.DAYS_PER_YEAR);
 
       // Estimate transaction value
       // HEURISTIC: Assume 5% velocity (5% of supply moves annually)
       // This is a conservative estimate based on typical cryptocurrency velocity
       // Confidence: MEDIUM due to velocity estimation
-      const supplyVelocity = 0.05;
-      const annualSupplyMovement = circulatingSupply * supplyVelocity;
+      const annualSupplyMovement = circulatingSupply * NanoCollector.SUPPLY_VELOCITY;
       const annualTxValue = annualSupplyMovement * currentPrice;
 
       // Average transaction value
       const avgTxValue = annualTxCount > 0 ? annualTxValue / annualTxCount : 0;
 
       const issues: string[] = [];
-      issues.push('Transaction value estimated using 5% velocity heuristic (conservative estimate)');
+      issues.push(`Transaction value estimated using ${NanoCollector.SUPPLY_VELOCITY * 100}% velocity heuristic (conservative estimate)`);
 
       return {
         annualTxCount,
@@ -144,7 +147,7 @@ export class NanoCollector {
         metadata: {
           daysLive,
           genesisDate: NanoCollector.GENESIS_DATE,
-          supplyVelocity,
+          supplyVelocity: NanoCollector.SUPPLY_VELOCITY,
           velocityNote: 'Estimated using conservative 5% annual velocity'
         }
       };

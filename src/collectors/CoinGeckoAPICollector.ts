@@ -12,7 +12,9 @@ export class CoinGeckoAPICollector {
   // Transaction estimation constants
   private static readonly MIN_AVG_TX_VALUE = 100; // Minimum average transaction value in USD
   private static readonly MAX_AVG_TX_VALUE = 10000; // Maximum average transaction value in USD
+  private static readonly MARKET_CAP_RATIO = 0.0001; // 0.01% of market cap used for avgTxValue estimation
   private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
 
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
@@ -83,13 +85,16 @@ export class CoinGeckoAPICollector {
       const estimatedAvgTxValue = marketCap > 0 
         ? Math.max(
             CoinGeckoAPICollector.MIN_AVG_TX_VALUE, 
-            Math.min(marketCap * 0.0001, CoinGeckoAPICollector.MAX_AVG_TX_VALUE)
+            Math.min(
+              marketCap * CoinGeckoAPICollector.MARKET_CAP_RATIO, 
+              CoinGeckoAPICollector.MAX_AVG_TX_VALUE
+            )
           )
         : price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER; // Fallback when no market cap data
       
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
-      const annualTxCount = Math.round(dailyTxCount * 365);
-      const annualTxValue = volume24h * 365;
+      const annualTxCount = Math.round(dailyTxCount * CoinGeckoAPICollector.DAYS_PER_YEAR);
+      const annualTxValue = volume24h * CoinGeckoAPICollector.DAYS_PER_YEAR;
 
       // Developer activity
       const developers = developerData.forks || 0;

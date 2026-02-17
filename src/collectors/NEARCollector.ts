@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
+import { getNetworkDaysLive } from '../utils/networkLifetime.js';
 
 /**
  * NEAR Protocol Collector
@@ -60,8 +61,8 @@ export class NEARCollector {
       const tps = stats.tps;
 
       // Calculate annual metrics
-      // NEAR has been live since ~April 2020, approximately 5.75 years = 2099 days
-      const daysLive = 2099;
+      // NEAR genesis: April 22, 2020 - calculate days dynamically
+      const daysLive = getNetworkDaysLive('NEAR');
       const txnsPerDay = totalTxns / daysLive;
       const annualTxCount = Math.round(txnsPerDay * 365);
 

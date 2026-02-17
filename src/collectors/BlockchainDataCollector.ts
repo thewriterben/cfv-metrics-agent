@@ -39,7 +39,8 @@ export class BlockchainDataCollector {
     this.coingeckoCollector = new CoinGeckoAPICollector(config.coingeckoApiKey || '');
     
     this.threexplCollector = new ThreeXplCollector({
-      apiKey: config.threexplApiKey
+      apiKey: config.threexplApiKey,
+      coingeckoApiKey: config.coingeckoApiKey
     });
     
     this.dashClient = new DashApiClient();

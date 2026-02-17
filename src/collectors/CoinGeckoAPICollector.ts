@@ -74,8 +74,8 @@ export class CoinGeckoAPICollector {
       // For most coins, avgTxValue ranges from $100 to $10,000
       // This is still an estimate - real blockchain data would be more accurate
       //
-      // Clamping logic: First cap at $10k, then ensure minimum $100
-      // Result: min($100, max($10k, marketCap * 0.0001))
+      // Clamping logic: max($100, min($10k, marketCap * 0.0001))
+      // First limits maximum to $10k, then ensures minimum is $100
       const estimatedAvgTxValue = marketCap > 0 
         ? Math.max(100, Math.min(marketCap * 0.0001, 10000)) // Clamp between $100 and $10k
         : price * 100;

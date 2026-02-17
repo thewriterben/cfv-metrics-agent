@@ -38,22 +38,24 @@ export async function initializeDatabase(config: {
     // Insert initial coin data (safe with ON DUPLICATE KEY UPDATE)
     // This preserves any existing coin data and only updates if needed
     const insertCoins = `
-      INSERT INTO coins (symbol, name, coingecko_id, active) VALUES
-      ('BTC', 'Bitcoin', 'bitcoin', TRUE),
-      ('ETH', 'Ethereum', 'ethereum', TRUE),
-      ('DASH', 'Dash', 'dash', TRUE),
-      ('DGB', 'DigiByte', 'digibyte', TRUE),
-      ('XMR', 'Monero', 'monero', TRUE),
-      ('RVN', 'Ravencoin', 'ravencoin', TRUE),
-      ('XCH', 'Chia', 'chia', TRUE),
-      ('XEC', 'eCash', 'ecash', TRUE),
-      ('XNO', 'Nano', 'nano', TRUE),
-      ('NEAR', 'NEAR Protocol', 'near', TRUE),
-      ('ICP', 'Internet Computer', 'internet-computer', TRUE),
-      ('ZCL', 'Zclassic', 'zclassic', TRUE)
+      INSERT INTO coins (symbol, name, coingecko_id, collector_type, confidence_level, active) VALUES
+      ('BTC', 'Bitcoin', 'bitcoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('ETH', 'Ethereum', 'ethereum', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('DASH', 'Dash', 'dash', 'DashAPI', 'MEDIUM', TRUE),
+      ('DGB', 'DigiByte', 'digibyte', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('XMR', 'Monero', 'monero', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('RVN', 'Ravencoin', 'ravencoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('XCH', 'Chia', 'chia', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('XEC', 'eCash', 'ecash', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('XNO', 'Nano', 'nano', 'NanoRPC', 'HIGH', TRUE),
+      ('NEAR', 'NEAR Protocol', 'near', 'NearBlocksAPI', 'MEDIUM', TRUE),
+      ('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('ZCL', 'Zclassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM', TRUE)
       ON DUPLICATE KEY UPDATE 
           name=VALUES(name), 
           coingecko_id=VALUES(coingecko_id),
+          collector_type=VALUES(collector_type),
+          confidence_level=VALUES(confidence_level),
           active=VALUES(active);
     `;
 

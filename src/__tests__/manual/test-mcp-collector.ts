@@ -1,5 +1,5 @@
-import { CoinGeckoMCPCollector } from './collectors/CoinGeckoMCPCollector.js';
-import { CFVCalculator } from './utils/CFVCalculator.js';
+import { CoinGeckoMCPCollector } from '../../collectors/CoinGeckoMCPCollector.js';
+import { CFVCalculator } from '../../utils/CFVCalculator.js';
 import dotenv from 'dotenv';
 
 dotenv.config();

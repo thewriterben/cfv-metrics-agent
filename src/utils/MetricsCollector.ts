@@ -153,14 +153,22 @@ export class MetricsCollector {
         const sorted = [...values].sort((a, b) => a - b);
         const sum = values.reduce((acc, val) => acc + val, 0);
         
+        // Define bucket boundaries (in milliseconds for request duration)
+        const buckets = [10, 25, 50, 100, 250, 500, 1000, 2500, 5000, 10000];
+        
         output += `# HELP ${name} Histogram\n`;
         output += `# TYPE ${name} histogram\n`;
+        
+        // Create cumulative buckets
+        for (const bucket of buckets) {
+          const count = sorted.filter(v => v <= bucket).length;
+          output += `${name}_bucket{le="${bucket}"} ${count}\n`;
+        }
+        
+        // +Inf bucket (all observations)
+        output += `${name}_bucket{le="+Inf"} ${values.length}\n`;
         output += `${name}_sum ${sum}\n`;
-        output += `${name}_count ${values.length}\n`;
-        output += `${name}_bucket{le="0.5"} ${this.percentile(sorted, 0.50)}\n`;
-        output += `${name}_bucket{le="0.95"} ${this.percentile(sorted, 0.95)}\n`;
-        output += `${name}_bucket{le="0.99"} ${this.percentile(sorted, 0.99)}\n`;
-        output += `${name}_bucket{le="+Inf"} ${values.length}\n\n`;
+        output += `${name}_count ${values.length}\n\n`;
       }
     }
     

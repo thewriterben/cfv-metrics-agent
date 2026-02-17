@@ -56,14 +56,14 @@ export class APIServer {
    * Setup middleware
    */
   private setupMiddleware(): void {
-    // Sentry request handler (must be first)
+    // CORS (must be first to handle preflight requests)
+    this.app.use(cors());
+    
+    // Sentry request handler
     this.app.use(sentryRequestHandler());
     
     // Sentry tracing handler
     this.app.use(sentryTracingHandler());
-    
-    // CORS
-    this.app.use(cors());
     
     // JSON body parser
     this.app.use(express.json());

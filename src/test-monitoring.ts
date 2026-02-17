@@ -75,10 +75,16 @@ console.log('✓ Metrics collector test complete\n');
 console.log('Test 4: Prometheus Export');
 console.log('-'.repeat(80));
 const prometheusOutput = metricsCollector.exportPrometheus();
-const lines = prometheusOutput.split('\n').filter(l => l.trim()).slice(0, 10);
-console.log('First 10 lines of Prometheus output:');
-lines.forEach(line => console.log('  ' + line));
-console.log('  ... (truncated)');
+const lines = prometheusOutput.split('\n').filter(l => l.trim());
+console.log('Sample Prometheus output:');
+// Show histogram section
+const histogramStart = lines.findIndex(l => l.includes('test_request_duration'));
+if (histogramStart >= 0) {
+  const histogramLines = lines.slice(histogramStart, Math.min(histogramStart + 20, lines.length));
+  histogramLines.forEach(line => console.log('  ' + line));
+} else {
+  lines.slice(0, 15).forEach(line => console.log('  ' + line));
+}
 console.log('✓ Prometheus export test complete\n');
 
 // Test 5: Health Checker

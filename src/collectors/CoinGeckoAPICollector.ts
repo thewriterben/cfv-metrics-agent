@@ -84,8 +84,6 @@ export class CoinGeckoAPICollector {
       // - Clamp result between $100 and $10,000 (realistic transaction values)
       // - The bounds prevent extreme values from market cap variations
       // - This is still an estimate - real blockchain data would be more accurate
-      //
-      // Clamping: Ensures result is at least MIN_AVG_TX_VALUE and at most MAX_AVG_TX_VALUE
       const estimatedAvgTxValue = marketCap > 0 
         ? Math.max(
             CoinGeckoAPICollector.MIN_AVG_TX_VALUE, 

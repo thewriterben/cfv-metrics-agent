@@ -40,6 +40,18 @@ export class NEARCollector {
   }
 
   /**
+   * Calculate days since NEAR genesis
+   * NEAR mainnet launched April 22, 2020
+   */
+  private calculateDaysLive(): number {
+    const genesisDate = new Date('2020-04-22'); // NEAR mainnet genesis date
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - genesisDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  /**
    * Get transaction metrics for NEAR Protocol
    */
   async getTransactionMetrics(): Promise<TransactionMetrics> {
@@ -59,26 +71,36 @@ export class NEARCollector {
       const volume24h = parseFloat(stats.volume);
       const tps = stats.tps;
 
-      // Calculate annual metrics
-      // NEAR has been live since ~April 2020, approximately 5.75 years = 2099 days
-      const daysLive = 2099;
+      // Calculate annual metrics using dynamic days live calculation
+      const daysLive = this.calculateDaysLive();
       const txnsPerDay = totalTxns / daysLive;
       const annualTxCount = Math.round(txnsPerDay * 365);
 
       // Estimate annual transaction value
-      // Method 1: Use 24h volume * 365
+      // HEURISTIC: Use 24h volume × 365
+      // This assumes current 24h volume is representative of average daily volume
+      // Confidence: MEDIUM due to volatility in daily volume
       const annualTxValue = volume24h * 365;
 
       // Average transaction value
       const avgTxValue = annualTxCount > 0 ? annualTxValue / annualTxCount : 0;
+
+      const issues: string[] = [];
+      issues.push('Transaction value estimated using 24h volume extrapolation (volume24h × 365)');
 
       return {
         annualTxCount,
         annualTxValue,
         avgTxValue,
         confidence: 'MEDIUM',
-        sources: ['NearBlocks API', 'Indexed Blockchain Data'],
-        timestamp: new Date()
+        sources: ['NearBlocks API', 'Indexed Blockchain Data', 'Volume Extrapolation'],
+        timestamp: new Date(),
+        issues,
+        metadata: {
+          daysLive,
+          genesisDate: '2020-04-22',
+          volumeNote: 'Estimated by extrapolating 24h volume to annual'
+        }
       };
     } catch (error) {
       throw new Error(`Failed to get NEAR metrics: ${error instanceof Error ? error.message : String(error)}`);

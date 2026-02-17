@@ -63,9 +63,20 @@ export class CoinGeckoAPICollector {
       const marketCap = marketData.market_cap?.usd || 0;
       const price = marketData.current_price?.usd || 0;
 
-      // Estimate annual transactions from 24h volume
-      // Assumption: average tx value is 0.1% of market cap
-      const estimatedAvgTxValue = marketCap > 0 ? marketCap * 0.001 : price * 100;
+      // HEURISTIC: Estimate annual transactions from 24h volume
+      // avgTxValue estimation is crude and varies significantly by coin:
+      // - For high-cap coins (BTC, ETH): transactions tend to be larger
+      // - For smaller coins: transactions tend to be smaller
+      // Using 0.1% of market cap as avgTxValue leads to systematic underestimation
+      // 
+      // Improved heuristic: Use volume-based approach
+      // Assume average tx value is proportional to market activity
+      // For most coins, avgTxValue ranges from $100 to $10,000
+      // This is still an estimate - real blockchain data would be more accurate
+      const estimatedAvgTxValue = marketCap > 0 
+        ? Math.max(100, Math.min(marketCap * 0.0001, 10000)) // Between $100 and $10k
+        : price * 100;
+      
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
       const annualTxCount = Math.round(dailyTxCount * 365);
       const annualTxValue = volume24h * 365;
@@ -129,15 +140,18 @@ export class CoinGeckoAPICollector {
 
     if (metrics.annualTxCount === 0) {
       warnings.push('No transaction data available');
+    } else {
+      warnings.push('Transaction count estimated using volume-based heuristic - real blockchain data recommended for accuracy');
     }
 
     if (metrics.developers === 0) {
       warnings.push('No developer data available');
     }
 
+    // Mark confidence as LOW due to transaction estimation heuristics
     return {
       isValid: errors.length === 0,
-      confidence: 'MEDIUM',
+      confidence: metrics.annualTxCount > 0 ? 'LOW' : 'MEDIUM',
       issues: [...errors, ...warnings]
     };
   }

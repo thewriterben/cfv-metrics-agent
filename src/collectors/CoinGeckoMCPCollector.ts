@@ -133,27 +133,33 @@ export class CoinGeckoMCPCollector {
 
   /**
    * Estimate annual transaction value
-   * Note: This is an estimation based on market data
+   * HEURISTIC: Based on market data (volume24h × 365)
+   * This assumes current 24h volume is representative of average daily volume
+   * Confidence: LOW-MEDIUM due to volume volatility
    */
   private estimateAnnualTxValue(data: any): number {
     const marketData = data.market_data || {};
     const volume24h = marketData.total_volume?.usd || 0;
     
     // Estimate annual volume (365 days)
-    // This is a rough estimate - actual on-chain data would be more accurate
+    // NOTE: This is a rough estimate - actual on-chain data would be more accurate
     return volume24h * 365;
   }
 
   /**
    * Estimate annual transaction count
-   * Note: This is an estimation based on supply and market activity
+   * HEURISTIC: Placeholder based on circulating supply × 2
+   * This is a VERY crude estimate that varies greatly by coin type:
+   * - High-velocity payment coins may have 10x+ supply in annual transactions
+   * - Store of value coins may have <0.5x supply in annual transactions
+   * Confidence: LOW - This needs to be replaced with real blockchain data
    */
   private estimateAnnualTxCount(data: any): number {
     const marketData = data.market_data || {};
     const circulatingSupply = marketData.circulating_supply || 0;
     
-    // Rough estimate: assume 2x supply as annual transactions
-    // This varies greatly by coin - actual blockchain data would be more accurate
+    // PLACEHOLDER: assume 2x supply as annual transactions
+    // WARNING: This varies greatly by coin - actual blockchain data would be more accurate
     return circulatingSupply * 2;
   }
 
@@ -189,7 +195,7 @@ export class CoinGeckoMCPCollector {
    */
   validateMetrics(metrics: SimpleCFVMetrics): ValidationResult {
     const issues: string[] = [];
-    let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH';
+    let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
 
     // Check for missing critical data
     if (!metrics.communitySize || metrics.communitySize === 0) {
@@ -207,10 +213,12 @@ export class CoinGeckoMCPCollector {
       confidence = 'LOW';
     }
 
-    // Note about estimated values
+    // Transaction metrics are estimated with LOW confidence
     if (metrics.annualTxValue || metrics.annualTxCount) {
-      issues.push('Transaction metrics are estimated - consider using blockchain explorer data for accuracy');
-      if (confidence === 'HIGH') confidence = 'MEDIUM';
+      issues.push('Transaction value estimated using 24h volume extrapolation (volume24h × 365)');
+      issues.push('Transaction count estimated using placeholder heuristic (supply × 2) - LOW confidence, needs blockchain data');
+      // Lower confidence to LOW due to crude transaction estimates
+      confidence = 'LOW';
     }
 
     return {

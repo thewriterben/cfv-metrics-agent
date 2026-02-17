@@ -11,7 +11,7 @@ import { ThreeXplCollector } from '../../collectors/ThreeXplCollector.js';
 
 async function testThreeXplFallback() {
   console.log('\n🧪 Testing ThreeXplCollector with CoinGecko Fallback\n');
-  console.log('=' .repeat(70));
+  console.log('='.repeat(70));
 
   const collector = new ThreeXplCollector({
     apiKey: process.env.THREEXPL_API_KEY,

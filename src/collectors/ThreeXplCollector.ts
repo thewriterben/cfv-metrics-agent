@@ -219,7 +219,8 @@ export class ThreeXplCollector {
       const metrics = await this.calculateAnnualMetrics(coinSymbol);
 
       // Determine confidence level based on data completeness
-      let confidence: ConfidenceLevel = 'HIGH';
+      // Start with MEDIUM since we always use fallback for volume data
+      let confidence: ConfidenceLevel = 'MEDIUM';
       const issues: string[] = [];
       const sources: string[] = [`3xpl.com (${blockchain})`];
 
@@ -229,9 +230,8 @@ export class ThreeXplCollector {
         issues.push('No transaction data available');
       }
 
-      // Mark confidence as MEDIUM when using fallback for volume
+      // Mark confidence as MEDIUM when using fallback for volume (already MEDIUM)
       if (metrics.usedFallback && metrics.fallbackSource) {
-        confidence = 'MEDIUM';
         issues.push(`Transaction volume estimated using ${metrics.fallbackSource}`);
         sources.push(metrics.fallbackSource);
       } else if (metrics.annualTxValue === 0) {

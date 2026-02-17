@@ -69,8 +69,8 @@ describe('EtherscanCollector', () => {
       expect(result.source).toContain('Etherscan');
       expect(result.source).toContain('CoinGecko');
       expect(result.metadata?.methodology).toContain('volume24h × 365');
-      expect(result.metadata?.usedFallback).toBe(true);
-      expect(result.metadata?.fallbackSource).toBe('CoinGecko (volume24h × 365)');
+      expect(result.metadata?.usedCoinGecko).toBe(true);
+      expect(result.metadata?.coinGeckoSource).toBe('CoinGecko (volume24h × 365)');
     });
 
     it('should return LOW confidence when CoinGecko fallback fails', async () => {

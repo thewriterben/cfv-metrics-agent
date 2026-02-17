@@ -141,8 +141,8 @@ export class EtherscanCollector implements MetricCollector {
       // Use CoinGecko as primary data source for volume
       // This is consistent with ThreeXplCollector pattern
       let annualTxValue = 0;
-      let usedFallback = false;
-      let fallbackSource: string | undefined;
+      let usedCoinGecko = false;
+      let coinGeckoSource: string | undefined;
       
       try {
         const geckoMetrics = await this.coingeckoCollector.collectMetrics('ETH');
@@ -150,8 +150,8 @@ export class EtherscanCollector implements MetricCollector {
         // Use CoinGecko volume data (volume24h × 365)
         if (geckoMetrics.annualTxValue && geckoMetrics.annualTxValue > 0) {
           annualTxValue = geckoMetrics.annualTxValue;
-          usedFallback = true;
-          fallbackSource = 'CoinGecko (volume24h × 365)';
+          usedCoinGecko = true;
+          coinGeckoSource = 'CoinGecko (volume24h × 365)';
         }
       } catch (error) {
         // If CoinGecko fallback fails, log warning but continue with zero
@@ -163,9 +163,9 @@ export class EtherscanCollector implements MetricCollector {
       const issues: string[] = [];
       const sources: string[] = ['Etherscan'];
       
-      if (usedFallback && fallbackSource) {
-        issues.push(`Transaction volume estimated using ${fallbackSource}`);
-        sources.push(fallbackSource);
+      if (usedCoinGecko && coinGeckoSource) {
+        issues.push(`Transaction volume from ${coinGeckoSource}`);
+        sources.push(coinGeckoSource);
       } else if (annualTxValue === 0) {
         issues.push('Transaction volume data not available - CoinGecko fallback failed');
       }
@@ -180,8 +180,8 @@ export class EtherscanCollector implements MetricCollector {
           currentBlock,
           startBlock,
           blocksPerYear,
-          usedFallback,
-          fallbackSource,
+          usedCoinGecko,
+          coinGeckoSource,
           issues: issues.length > 0 ? issues : undefined,
         },
       };

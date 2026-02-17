@@ -27,6 +27,7 @@
     "@coingecko/coingecko-mcp": "^2.5.0",
     "@github/copilot-sdk": "^0.1.20",
     "@modelcontextprotocol/sdk": "^1.25.3",
+    "@sentry/node": "^7.91.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "axios": "^1.13.4",
@@ -36,7 +37,9 @@
     "express": "^5.2.1",
     "express-rate-limit": "^8.2.1",
     "ioredis": "^5.9.2",
-    "mysql2": "^3.16.2"
+    "mysql2": "^3.16.2",
+    "winston": "^3.11.0",
+    "winston-daily-rotate-file": "^4.7.1"
   },
   "devDependencies": {
     "@types/express-rate-limit": "^5.1.3",

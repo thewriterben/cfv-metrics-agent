@@ -3,7 +3,6 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
-import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
 
 /**
  * CFV Metrics API Server
@@ -28,7 +27,7 @@ export class APIServer {
   private db: DatabaseManager;
   private collector: BlockchainDataCollector;
   private config: APIServerConfig;
-  private rateLimitMonitor: RateLimitMonitor;
+
 
   constructor(config: APIServerConfig) {
     this.config = config;
@@ -37,7 +36,7 @@ export class APIServer {
     this.collector = new BlockchainDataCollector({
       coingeckoApiKey: config.coingeckoApiKey
     });
-    this.rateLimitMonitor = new RateLimitMonitor();
+
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -46,14 +45,44 @@ export class APIServer {
 
   /**
    * Setup middleware
+   * 
+   * Middleware order is important:
+   * 1. CORS - must be first to handle preflight OPTIONS requests
+   * 2. Sentry - captures all requests and errors after CORS
+   * 3. Body parsers - parse request bodies
+   * 4. Request logging - log after body parsing
+   * 5. Performance monitoring - track timing after logging setup
+   * 6. Metrics tracking - count requests and connections
    */
   private setupMiddleware(): void {
+    // CORS (must be first to handle preflight requests)
     this.app.use(cors());
+    
+    // Sentry request handler
+    this.app.use(sentryRequestHandler());
+    
+    // Sentry tracing handler
+    this.app.use(sentryTracingHandler());
+    
+    // JSON body parser
     this.app.use(express.json());
     
-    // Request logging
+    // Request logging with context
+    this.app.use(requestLogger);
+    
+    // Performance monitoring
+    this.app.use(performanceMonitor.middleware());
+    
+    // Track requests in metrics
     this.app.use((req, res, next) => {
-      console.log(`${new Date().toISOString()} ${req.method} ${req.path}`);
+      metricsCollector.incrementCounter('http_requests_total');
+      metricsCollector.incrementGauge('active_connections');
+      
+      res.on('finish', () => {
+        metricsCollector.decrementGauge('active_connections');
+        metricsCollector.incrementCounter(`http_requests_${res.statusCode}`);
+      });
+      
       next();
     });
 
@@ -84,32 +113,7 @@ export class APIServer {
    * Setup API routes
    */
   private setupRoutes(): void {
-    // Helper to extract symbol parameter (handles both string and string[])
-    const extractSymbol = (params: any): string => {
-      const symbol = params.symbol;
-      return Array.isArray(symbol) ? symbol[0] : symbol;
-    };
 
-    // Strict rate limiter for expensive operations
-    const strictLimiter = rateLimit({
-      windowMs: parseInt(process.env.RATE_LIMIT_STRICT_WINDOW_MS || '60000'), // 1 minute
-      max: parseInt(process.env.RATE_LIMIT_STRICT_MAX_REQUESTS || '10'), // 10 requests per minute
-      standardHeaders: true,
-      legacyHeaders: false,
-      message: {
-        error: 'Rate limit exceeded for this operation.',
-        retryAfter: '1 minute'
-      },
-      handler: (req, res) => {
-        res.status(429).json({
-          success: false,
-          error: 'Rate limit exceeded for this operation.',
-          retryAfter: '1 minute'
-        });
-      }
-    });
-
-    // Health check
     this.app.get('/health', async (req, res) => {
       try {
         const dbHealthy = await this.db.testConnection();
@@ -126,58 +130,12 @@ export class APIServer {
       }
     });
 
-    // Rate limit status endpoints
-    this.app.get('/api/rate-limits/status', async (req, res) => {
-      try {
-        const statuses = this.rateLimitMonitor.getAllStatus();
-        res.json({
-          success: true,
-          data: statuses
-        });
-      } catch (error) {
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
 
-    this.app.get('/api/rate-limits/:service', async (req, res) => {
-      try {
-        const { service } = req.params;
-        const validServices = ['coingecko', 'etherscan', 'github'];
-        
-        if (!validServices.includes(service)) {
-          return res.status(400).json({
-            success: false,
-            error: `Invalid service. Must be one of: ${validServices.join(', ')}`
-          });
-        }
-
-        const status = this.rateLimitMonitor.getStatus(service as any);
-        
-        if (!status) {
-          return res.status(404).json({
-            success: false,
-            error: `No rate limit data for service: ${service}`
-          });
-        }
-
-        res.json({
-          success: true,
-          data: status
-        });
-      } catch (error) {
-        res.status(500).json({
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
 
     // Get all coins
     this.app.get('/api/coins', async (req, res, next) => {
       try {
+        metricsCollector.incrementCounter('api_calls_coins');
         const coins = await this.db.getActiveCoins();
         res.json({
           success: true,
@@ -192,6 +150,7 @@ export class APIServer {
     // Get all latest metrics
     this.app.get('/api/metrics', async (req, res, next) => {
       try {
+        metricsCollector.incrementCounter('api_calls_metrics');
         const metrics = await this.db.getAllLatestMetrics();
         res.json({
           success: true,
@@ -248,7 +207,8 @@ export class APIServer {
       try {
         const symbol = extractSymbol(req.params);
         
-        console.log(`Collecting fresh metrics for ${symbol}...`);
+        metricsCollector.incrementCounter('api_calls_collect');
+        logger.info(`Collecting fresh metrics for ${symbol}...`);
         const metrics = await this.collector.getTransactionMetrics(symbol.toUpperCase());
         
         // Save to database
@@ -328,8 +288,22 @@ export class APIServer {
    * Setup error handling
    */
   private setupErrorHandling(): void {
+    // Error logging middleware
+    this.app.use(errorLogger);
+    
+    // Sentry error handler (must be before other error handlers)
+    this.app.use(sentryErrorHandler());
+    
+    // General error handler
     this.app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-      console.error('API Error:', err);
+      metricsCollector.incrementCounter('errors_total');
+      logger.error('API Error:', { 
+        error: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method
+      });
+      
       res.status(500).json({
         success: false,
         error: err.message || 'Internal server error'
@@ -347,15 +321,20 @@ export class APIServer {
 
     for (const coin of coins) {
       try {
-        console.log(`Collecting metrics for ${coin.symbol}...`);
+        logger.info(`Collecting metrics for ${coin.symbol}...`);
+        metricsCollector.incrementCounter('cfv_calculations_total');
+        
         const metrics = await this.collector.getTransactionMetrics(coin.symbol);
         await this.db.saveMetrics(coin.symbol, metrics);
         successful++;
         
+        metricsCollector.incrementCounter('cfv_calculations_success');
+        
         // Rate limiting: 5 second delay
         await new Promise(resolve => setTimeout(resolve, 5000));
       } catch (error) {
-        console.error(`Failed to collect ${coin.symbol}:`, error);
+        logger.error(`Failed to collect ${coin.symbol}:`, { error });
+        metricsCollector.incrementCounter('cfv_calculations_failed');
         failed++;
         errorMessage = error instanceof Error ? error.message : 'Unknown error';
       }
@@ -378,9 +357,11 @@ export class APIServer {
 
     // Start server
     this.app.listen(this.config.port, () => {
-      console.log(`CFV Metrics API Server running on port ${this.config.port}`);
-      console.log(`Health check: http://localhost:${this.config.port}/health`);
-      console.log(`API docs: http://localhost:${this.config.port}/api/metrics`);
+      logger.info(`CFV Metrics API Server running on port ${this.config.port}`);
+      logger.info(`Health check: http://localhost:${this.config.port}/health`);
+      logger.info(`API endpoints: http://localhost:${this.config.port}/api/metrics`);
+      logger.info(`Dashboard: http://localhost:${this.config.port}/dashboard`);
+      logger.info(`Prometheus metrics: http://localhost:${this.config.port}/metrics/prometheus`);
     });
   }
 
@@ -388,6 +369,7 @@ export class APIServer {
    * Stop the API server
    */
   async stop(): Promise<void> {
+    logger.info('Shutting down API server...');
     await this.db.close();
   }
 }

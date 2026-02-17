@@ -18,6 +18,7 @@ export class CoinGeckoMCPCollector {
   private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
   private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
   private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
+  private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
 
   constructor(private apiKey: string = '') {}
 
@@ -178,7 +179,9 @@ export class CoinGeckoMCPCollector {
           : price * CoinGeckoMCPCollector.FALLBACK_TX_MULTIPLIER;
       }
       
-      const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
+      const dailyTxCount = estimatedAvgTxValue > CoinGeckoMCPCollector.MIN_AVG_TX_VALUE
+        ? volume24h / estimatedAvgTxValue 
+        : 0;
       return Math.round(dailyTxCount * 365);
     }
     

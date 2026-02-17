@@ -17,8 +17,10 @@ export class CoinGeckoAPICollector {
   private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
   private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
   private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
-  // Note: Small cap uses 1% (not 5% like Nano) because this represents per-transaction
-  // movement, not annual velocity. 1% per tx × many txs ≈ higher annual velocity.
+  private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
+  // Note: Small cap uses 1% (not 5% like Nano's annual velocity) because this represents
+  // the supply fraction moved in an average transaction. Multiple transactions throughout
+  // the year result in higher cumulative velocity.
 
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
@@ -94,7 +96,9 @@ export class CoinGeckoAPICollector {
         estimatedAvgTxValue = price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER;
       }
       
-      const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
+      const dailyTxCount = estimatedAvgTxValue > CoinGeckoAPICollector.MIN_AVG_TX_VALUE 
+        ? volume24h / estimatedAvgTxValue 
+        : 0;
       const annualTxCount = Math.round(dailyTxCount * 365);
       const annualTxValue = volume24h * 365;
 

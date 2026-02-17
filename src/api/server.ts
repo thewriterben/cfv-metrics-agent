@@ -84,6 +84,12 @@ export class APIServer {
    * Setup API routes
    */
   private setupRoutes(): void {
+    // Helper to extract symbol parameter (handles both string and string[])
+    const extractSymbol = (params: any): string => {
+      const symbol = params.symbol;
+      return Array.isArray(symbol) ? symbol[0] : symbol;
+    };
+
     // Strict rate limiter for expensive operations
     const strictLimiter = rateLimit({
       windowMs: parseInt(process.env.RATE_LIMIT_STRICT_WINDOW_MS || '60000'), // 1 minute
@@ -200,7 +206,7 @@ export class APIServer {
     // Get metrics for specific coin (with strict rate limiting)
     this.app.get('/api/metrics/:symbol', strictLimiter, async (req, res, next) => {
       try {
-        const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
+        const symbol = extractSymbol(req.params);
         const metrics = await this.db.getLatestMetrics(symbol.toUpperCase());
         
         if (!metrics) {
@@ -222,7 +228,7 @@ export class APIServer {
     // Get metrics history for specific coin
     this.app.get('/api/metrics/:symbol/history', async (req, res, next) => {
       try {
-        const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
+        const symbol = extractSymbol(req.params);
         const limit = parseInt(req.query.limit as string) || 100;
         
         const history = await this.db.getMetricsHistory(symbol.toUpperCase(), limit);
@@ -240,7 +246,7 @@ export class APIServer {
     // Collect fresh metrics for specific coin (with strict rate limiting)
     this.app.post('/api/collect/:symbol', strictLimiter, async (req, res, next) => {
       try {
-        const symbol = Array.isArray(req.params.symbol) ? req.params.symbol[0] : req.params.symbol;
+        const symbol = extractSymbol(req.params);
         
         console.log(`Collecting fresh metrics for ${symbol}...`);
         const metrics = await this.collector.getTransactionMetrics(symbol.toUpperCase());

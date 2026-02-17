@@ -234,7 +234,9 @@ export class RateLimitMonitor {
    * Create a simple progress bar
    */
   private createProgressBar(percentage: number, width: number = 20): string {
-    const filled = Math.round((percentage / 100) * width);
+    // Clamp percentage between 0 and 100
+    const clampedPercentage = Math.max(0, Math.min(100, percentage));
+    const filled = Math.round((clampedPercentage / 100) * width);
     const empty = width - filled;
     return `[${'#'.repeat(filled)}${'-'.repeat(empty)}]`;
   }

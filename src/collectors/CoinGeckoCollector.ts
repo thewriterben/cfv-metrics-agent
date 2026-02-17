@@ -40,9 +40,10 @@ export class CoinGeckoCollector implements MetricCollector {
     });
     
     // Initialize rate limiting and protection components
+    const coalescerTTL = parseInt(process.env.REQUEST_COALESCER_TTL || '5000');
     this.rateLimiter = rateLimiter || new RateLimiter();
     this.circuitBreaker = new CircuitBreaker();
-    this.coalescer = new RequestCoalescer(5000); // 5 second cache
+    this.coalescer = new RequestCoalescer(coalescerTTL);
     this.monitor = monitor || new RateLimitMonitor();
   }
   

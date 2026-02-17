@@ -38,8 +38,23 @@ CACHE_TTL_MEDIUM=3600
 CACHE_TTL_LONG=86400
 
 # Security
-ALLOWED_ORIGINS=*
-ENABLE_AUTH=false
+# SECURITY: Set to your actual frontend domain(s). Never use * in production.
+# Comma-separated list of trusted frontend domains (e.g., https://cfv-calculator.vercel.app,https://example.com)
+ALLOWED_ORIGINS=https://your-frontend-domain.com
+
+# SECURITY: Must be true in production. See AUTHENTICATION.md for setup.
+# Set to true to enable API key authentication (recommended for production)
+ENABLE_AUTH=true
+
+# API Keys for authentication (comma-separated)
+# Generate secure keys with: openssl rand -hex 32
+# See AUTHENTICATION.md for full setup instructions
+API_KEYS=
+
+# Admin API Keys (comma-separated, have elevated privileges)
+# Generate secure keys with: openssl rand -hex 32
+# Admin keys can trigger expensive operations like full collection runs
+ADMIN_API_KEYS=
 
 # Monitoring
 ENABLE_HEALTH_CHECK=true

@@ -47,21 +47,27 @@ export async function retry<T>(
 }
 
 /**
- * Mock console methods temporarily
+ * Mock console methods for testing
+ * Call this within a test suite to suppress console output during tests
  */
-export function mockConsole() {
+export function setupConsoleMocks() {
   const originalConsole = { ...console };
   
-  beforeEach(() => {
-    global.console.log = jest.fn();
-    global.console.error = jest.fn();
-    global.console.warn = jest.fn();
-    global.console.info = jest.fn();
-  });
-  
-  afterEach(() => {
-    global.console = originalConsole;
-  });
+  return {
+    suppress: () => {
+      global.console = {
+        ...console,
+        log: () => {},
+        debug: () => {},
+        info: () => {},
+        warn: () => {},
+        error: () => {},
+      } as any;
+    },
+    restore: () => {
+      global.console = originalConsole;
+    },
+  };
 }
 
 /**

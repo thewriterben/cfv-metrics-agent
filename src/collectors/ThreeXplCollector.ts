@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { TransactionMetrics, DataSource, ConfidenceLevel } from '../types/index.js';
+import { CoinGeckoAPICollector } from './CoinGeckoAPICollector.js';
 
 /**
  * 3xpl API Collector
@@ -16,12 +17,17 @@ import { TransactionMetrics, DataSource, ConfidenceLevel } from '../types/index.
  * - Monero (XMR) - Privacy coin
  * - Ravencoin (RVN) - Not available
  * - Chia (XCH) - Not available
+ * 
+ * IMPORTANT: 3xpl does not provide volume data in its stats endpoint.
+ * This collector uses CoinGecko as a fallback to get volume estimates
+ * (volume24h × 365) when 3xpl returns zero for transaction values.
  */
 
 interface ThreeXplConfig {
   apiKey?: string;
   baseUrl?: string;
   timeout?: number;
+  coingeckoApiKey?: string;
 }
 
 interface ThreeXplStatsResponse {
@@ -41,6 +47,7 @@ export class ThreeXplCollector {
   private apiKey: string;
   private baseUrl: string;
   private timeout: number;
+  private coingeckoCollector: CoinGeckoAPICollector;
 
   // Mapping of coin symbols to 3xpl blockchain names
   // Only includes coins that are VERIFIED to be supported
@@ -56,6 +63,9 @@ export class ThreeXplCollector {
     this.apiKey = config.apiKey || process.env.THREEXPL_API_KEY || '';
     this.baseUrl = config.baseUrl || 'https://api.3xpl.com';
     this.timeout = config.timeout || 30000;
+    this.coingeckoCollector = new CoinGeckoAPICollector(
+      config.coingeckoApiKey || process.env.COINGECKO_API_KEY || ''
+    );
   }
 
   /**
@@ -148,11 +158,14 @@ export class ThreeXplCollector {
 
   /**
    * Calculate annual transaction metrics from blockchain data
+   * Uses CoinGecko as fallback for volume data when 3xpl doesn't provide it
    */
   async calculateAnnualMetrics(coinSymbol: string): Promise<{
     annualTxCount: number;
     annualTxValue: number;
     avgTxValue: number;
+    usedFallback: boolean;
+    fallbackSource?: string;
   }> {
     const stats = await this.getChainStats(coinSymbol);
     
@@ -163,15 +176,33 @@ export class ThreeXplCollector {
     const annualTxCount = Math.round(txCount24h * 365);
 
     // Note: 3xpl doesn't provide volume data directly in stats endpoint
-    // We would need to query individual transactions to calculate volume
-    // For now, we'll return 0 for volume and mark it as incomplete
-    const annualTxValue = 0;
-    const avgTxValue = 0;
+    // Fetch volume from CoinGecko as fallback
+    let annualTxValue = 0;
+    let avgTxValue = 0;
+    let usedFallback = false;
+    let fallbackSource: string | undefined;
+
+    try {
+      const geckoMetrics = await this.coingeckoCollector.collectMetrics(coinSymbol);
+      
+      // Use CoinGecko volume data (volume24h × 365)
+      if (geckoMetrics.annualTxValue && geckoMetrics.annualTxValue > 0) {
+        annualTxValue = geckoMetrics.annualTxValue;
+        avgTxValue = annualTxCount > 0 ? annualTxValue / annualTxCount : 0;
+        usedFallback = true;
+        fallbackSource = 'CoinGecko (volume24h × 365)';
+      }
+    } catch (error) {
+      // If CoinGecko fallback fails, log warning but continue with zeros
+      console.warn(`CoinGecko fallback failed for ${coinSymbol}:`, error instanceof Error ? error.message : String(error));
+    }
 
     return {
       annualTxCount,
       annualTxValue,
-      avgTxValue
+      avgTxValue,
+      usedFallback,
+      fallbackSource
     };
   }
 
@@ -187,19 +218,26 @@ export class ThreeXplCollector {
       const blockchain = this.getBlockchainName(coinSymbol);
       const metrics = await this.calculateAnnualMetrics(coinSymbol);
 
-      // Determine confidence level
+      // Determine confidence level based on data completeness
+      // Start with MEDIUM since we always use fallback for volume data
       let confidence: ConfidenceLevel = 'MEDIUM';
       const issues: string[] = [];
+      const sources: string[] = [`3xpl.com (${blockchain})`];
 
-      // Check if we have real data
+      // Check if we have real transaction count data
       if (metrics.annualTxCount === 0) {
         confidence = 'LOW';
         issues.push('No transaction data available');
       }
 
-      // Note: Volume data not available from stats endpoint
-      if (metrics.annualTxValue === 0) {
-        issues.push('Transaction volume data not available from 3xpl stats endpoint');
+      // Mark confidence as MEDIUM when using fallback for volume (already MEDIUM)
+      if (metrics.usedFallback && metrics.fallbackSource) {
+        issues.push(`Transaction volume estimated using ${metrics.fallbackSource}`);
+        sources.push(metrics.fallbackSource);
+      } else if (metrics.annualTxValue === 0) {
+        // No fallback available or fallback failed
+        confidence = 'LOW';
+        issues.push('Transaction volume data not available from 3xpl stats endpoint and fallback failed');
       }
 
       return {
@@ -207,9 +245,15 @@ export class ThreeXplCollector {
         annualTxValue: metrics.annualTxValue,
         avgTxValue: metrics.avgTxValue,
         confidence,
-        sources: [`3xpl.com (${blockchain})`],
+        sources,
         timestamp: new Date(),
-        issues: issues.length > 0 ? issues : undefined
+        issues: issues.length > 0 ? issues : undefined,
+        metadata: {
+          blockchain,
+          usedFallback: metrics.usedFallback,
+          fallbackSource: metrics.fallbackSource,
+          txCount24h: Math.round(metrics.annualTxCount / 365)
+        }
       };
     } catch (error) {
       throw new Error(`Failed to collect metrics from 3xpl for ${coinSymbol}: ${error instanceof Error ? error.message : String(error)}`);

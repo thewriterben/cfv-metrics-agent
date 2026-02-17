@@ -77,7 +77,8 @@ const config = {
     database: dbConfig,
     coingeckoApiKey: coingeckoKey,
     intervalMinutes: parseInt(process.env.COLLECTION_INTERVAL_MINUTES || '60'),
-    delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000')
+    delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000'), // Deprecated, kept for backwards compatibility
+    maxConcurrency: parseInt(process.env.MAX_COLLECTION_CONCURRENCY || '5')
   }
 };
 
@@ -114,7 +115,7 @@ async function start() {
     console.log(`API Port: ${config.api.port}`);
     console.log(`Database: ${config.api.database.host}:${config.api.database.port}/${config.api.database.database}`);
     console.log(`Collection Interval: ${config.scheduler.intervalMinutes} minutes`);
-    console.log(`Rate Limit Delay: ${config.scheduler.delayBetweenCoins / 1000} seconds`);
+    console.log(`Max Concurrency: ${config.scheduler.maxConcurrency} coins`);
     console.log('='.repeat(80) + '\n');
 
     // Initialize database schema (if needed)

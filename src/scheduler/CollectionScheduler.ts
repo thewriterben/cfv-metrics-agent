@@ -17,7 +17,8 @@ export interface SchedulerConfig {
   };
   coingeckoApiKey?: string;
   intervalMinutes: number; // Collection interval in minutes
-  delayBetweenCoins: number; // Delay between coin collections in ms
+  delayBetweenCoins: number; // Delay between coin collections in ms (deprecated, kept for backwards compatibility)
+  maxConcurrency?: number; // Maximum concurrent coin collections (default: 5)
 }
 
 export class CollectionScheduler {
@@ -88,6 +89,85 @@ export class CollectionScheduler {
   }
 
   /**
+   * Process a single coin collection
+   */
+  private async collectCoin(coin: any): Promise<{ success: boolean; error?: string; duration: number }> {
+    const startTime = Date.now();
+    
+    try {
+      console.log(`\n📊 Collecting ${coin.name} (${coin.symbol})...`);
+      
+      const metrics = await this.collector.getTransactionMetrics(coin.symbol);
+      await this.db.saveMetrics(coin.symbol, metrics);
+      
+      const duration = Date.now() - startTime;
+      
+      console.log(`✅ Success in ${duration}ms`);
+      console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
+      console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
+      console.log(`   Confidence: ${metrics.confidence}`);
+      
+      return { success: true, duration };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ Failed to collect ${coin.symbol}:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        duration 
+      };
+    }
+  }
+
+  /**
+   * Process coins with concurrency control
+   */
+  private async processCoinsConcurrently(coins: any[], maxConcurrency: number): Promise<{
+    successful: number;
+    failed: number;
+    lastError?: string;
+  }> {
+    let successful = 0;
+    let failed = 0;
+    let lastError: string | undefined;
+
+    // Process coins in batches with concurrency limit
+    const results: Promise<void>[] = [];
+    const executing: Promise<void>[] = [];
+
+    for (const coin of coins) {
+      const promise = this.collectCoin(coin).then(result => {
+        if (result.success) {
+          successful++;
+        } else {
+          failed++;
+          lastError = result.error;
+        }
+      });
+
+      results.push(promise);
+
+      // If we've reached max concurrency, wait for one to finish
+      if (executing.length >= maxConcurrency) {
+        await Promise.race(executing);
+      }
+
+      executing.push(promise);
+      promise.finally(() => {
+        const index = executing.indexOf(promise);
+        if (index !== -1) {
+          executing.splice(index, 1);
+        }
+      });
+    }
+
+    // Wait for all remaining promises
+    await Promise.all(results);
+
+    return { successful, failed, lastError };
+  }
+
+  /**
    * Run a collection cycle
    */
   private async runCollection(): Promise<void> {
@@ -99,38 +179,10 @@ export class CollectionScheduler {
       const coins = await this.db.getActiveCoins();
       const runId = await this.db.startCollectionRun(coins.length);
 
-      let successful = 0;
-      let failed = 0;
-      let lastError: string | undefined;
+      const maxConcurrency = this.config.maxConcurrency || 5;
+      console.log(`Processing ${coins.length} coins with max concurrency: ${maxConcurrency}`);
 
-      for (const coin of coins) {
-        try {
-          console.log(`\n📊 Collecting ${coin.name} (${coin.symbol})...`);
-          
-          const startTime = Date.now();
-          const metrics = await this.collector.getTransactionMetrics(coin.symbol);
-          const duration = Date.now() - startTime;
-
-          await this.db.saveMetrics(coin.symbol, metrics);
-          
-          console.log(`✅ Success in ${duration}ms`);
-          console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
-          console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
-          console.log(`   Confidence: ${metrics.confidence}`);
-          
-          successful++;
-
-          // Rate limiting delay
-          if (coins.indexOf(coin) < coins.length - 1) {
-            console.log(`   ⏳ Waiting ${this.config.delayBetweenCoins / 1000}s for rate limiting...`);
-            await new Promise(resolve => setTimeout(resolve, this.config.delayBetweenCoins));
-          }
-        } catch (error) {
-          console.error(`❌ Failed to collect ${coin.symbol}:`, error);
-          failed++;
-          lastError = error instanceof Error ? error.message : 'Unknown error';
-        }
-      }
+      const { successful, failed, lastError } = await this.processCoinsConcurrently(coins, maxConcurrency);
 
       // Update collection run
       const status = failed === 0 ? 'completed' : (successful > 0 ? 'completed' : 'failed');

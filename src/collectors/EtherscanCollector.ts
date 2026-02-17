@@ -7,6 +7,10 @@ import type {
   CollectorPriority,
   EtherscanTransaction,
 } from '../types';
+import { RateLimiter } from '../utils/RateLimiter.js';
+import { CircuitBreaker } from '../utils/CircuitBreaker.js';
+import { RequestCoalescer } from '../utils/RequestCoalescer.js';
+import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
 
 export class EtherscanCollector implements MetricCollector {
   name = 'Etherscan';
@@ -19,12 +23,24 @@ export class EtherscanCollector implements MetricCollector {
   private errorCount = 0;
   private requestCount = 0;
   
-  constructor(apiKey?: string) {
+  // Rate limiting and protection
+  private rateLimiter: RateLimiter;
+  private circuitBreaker: CircuitBreaker;
+  private coalescer: RequestCoalescer<any>;
+  private monitor: RateLimitMonitor;
+  
+  constructor(apiKey?: string, rateLimiter?: RateLimiter, monitor?: RateLimitMonitor) {
     this.apiKey = apiKey;
     this.client = axios.create({
       baseURL: this.baseURL,
       timeout: 30000,
     });
+    
+    // Initialize rate limiting and protection components
+    this.rateLimiter = rateLimiter || new RateLimiter();
+    this.circuitBreaker = new CircuitBreaker();
+    this.coalescer = new RequestCoalescer(5000); // 5 second cache
+    this.monitor = monitor || new RateLimitMonitor();
   }
   
   async collect(coin: string, metric: MetricType): Promise<MetricResult> {
@@ -33,23 +49,32 @@ export class EtherscanCollector implements MetricCollector {
       throw new Error(`Etherscan only supports Ethereum, not ${coin}`);
     }
     
-    try {
-      this.requestCount++;
-      
-      switch (metric) {
-        case 'annualTransactionValue':
-          return await this.collectAnnualTransactionValue();
-        
-        case 'annualTransactions':
-          return await this.collectAnnualTransactions();
-        
-        default:
-          throw new Error(`Metric ${metric} not supported by Etherscan collector`);
-      }
-    } catch (error) {
-      this.errorCount++;
-      throw error;
-    }
+    const key = `etherscan:${coin}:${metric}`;
+    
+    return this.coalescer.coalesce(key, async () => {
+      return this.circuitBreaker.execute(async () => {
+        return this.rateLimiter.schedule('etherscan', async () => {
+          try {
+            this.requestCount++;
+            this.monitor.incrementUsage('etherscan');
+            
+            switch (metric) {
+              case 'annualTransactionValue':
+                return await this.collectAnnualTransactionValue();
+              
+              case 'annualTransactions':
+                return await this.collectAnnualTransactions();
+              
+              default:
+                throw new Error(`Metric ${metric} not supported by Etherscan collector`);
+            }
+          } catch (error) {
+            this.errorCount++;
+            throw error;
+          }
+        });
+      });
+    });
   }
   
   async supports(coin: string): Promise<boolean> {

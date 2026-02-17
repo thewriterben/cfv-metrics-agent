@@ -30,13 +30,16 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "axios": "^1.13.4",
+    "bottleneck": "^2.19.5",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
     "ioredis": "^5.9.2",
     "mysql2": "^3.16.2"
   },
   "devDependencies": {
+    "@types/express-rate-limit": "^5.1.3",
     "@types/node": "^25.2.0",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"

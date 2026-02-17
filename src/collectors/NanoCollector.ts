@@ -1,5 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
+import { getNetworkDaysLive } from '../utils/networkLifetime.js';
 
 /**
  * Nano Collector
@@ -98,8 +99,8 @@ export class NanoCollector {
       const currentPrice = price?.quotes.USD.price || 0;
 
       // Calculate daily transaction rate
-      // Nano has been live since 2015, approximately 9 years = 3285 days
-      const daysLive = 3285;
+      // Nano genesis: October 4, 2015 - calculate days dynamically
+      const daysLive = getNetworkDaysLive('NANO');
       const blocksPerDay = totalBlocks / daysLive;
 
       // Annual transaction count (blocks per day * 365)

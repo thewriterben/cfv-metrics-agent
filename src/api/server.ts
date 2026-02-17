@@ -3,6 +3,18 @@ import cors from 'cors';
 import rateLimit from 'express-rate-limit';
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
+import { logger } from '../utils/logger.js';
+import { metricsCollector } from '../utils/MetricsCollector.js';
+import { performanceMonitor } from '../utils/PerformanceMonitor.js';
+import { requestLogger, errorLogger } from '../middleware/requestLogger.js';
+import { requireAuth, requireAdmin, optionalAuth } from '../middleware/authentication.js';
+import { strictKeyLimiter, standardKeyLimiter } from '../middleware/rateLimitByKey.js';
+import { 
+  extractSymbol, 
+  sentryRequestHandler, 
+  sentryTracingHandler, 
+  sentryErrorHandler 
+} from './helpers.js';
 
 /**
  * CFV Metrics API Server
@@ -132,8 +144,8 @@ export class APIServer {
 
 
 
-    // Get all coins
-    this.app.get('/api/coins', async (req, res, next) => {
+    // Get all coins (with optional auth and standard rate limiting)
+    this.app.get('/api/coins', optionalAuth, standardKeyLimiter, async (req, res, next) => {
       try {
         metricsCollector.incrementCounter('api_calls_coins');
         const coins = await this.db.getActiveCoins();
@@ -147,8 +159,8 @@ export class APIServer {
       }
     });
 
-    // Get all latest metrics
-    this.app.get('/api/metrics', async (req, res, next) => {
+    // Get all latest metrics (with optional auth and standard rate limiting)
+    this.app.get('/api/metrics', optionalAuth, standardKeyLimiter, async (req, res, next) => {
       try {
         metricsCollector.incrementCounter('api_calls_metrics');
         const metrics = await this.db.getAllLatestMetrics();
@@ -162,8 +174,8 @@ export class APIServer {
       }
     });
 
-    // Get metrics for specific coin (with strict rate limiting)
-    this.app.get('/api/metrics/:symbol', strictLimiter, async (req, res, next) => {
+    // Get metrics for specific coin (with optional auth and strict rate limiting)
+    this.app.get('/api/metrics/:symbol', optionalAuth, strictKeyLimiter, async (req, res, next) => {
       try {
         const symbol = extractSymbol(req.params);
         const metrics = await this.db.getLatestMetrics(symbol.toUpperCase());
@@ -184,8 +196,8 @@ export class APIServer {
       }
     });
 
-    // Get metrics history for specific coin
-    this.app.get('/api/metrics/:symbol/history', async (req, res, next) => {
+    // Get metrics history for specific coin (with optional auth)
+    this.app.get('/api/metrics/:symbol/history', optionalAuth, standardKeyLimiter, async (req, res, next) => {
       try {
         const symbol = extractSymbol(req.params);
         const limit = parseInt(req.query.limit as string) || 100;
@@ -202,8 +214,8 @@ export class APIServer {
       }
     });
 
-    // Collect fresh metrics for specific coin (with strict rate limiting)
-    this.app.post('/api/collect/:symbol', strictLimiter, async (req, res, next) => {
+    // Collect fresh metrics for specific coin (REQUIRES AUTH - expensive operation)
+    this.app.post('/api/collect/:symbol', requireAuth, strictKeyLimiter, async (req, res, next) => {
       try {
         const symbol = extractSymbol(req.params);
         
@@ -224,15 +236,15 @@ export class APIServer {
       }
     });
 
-    // Collect metrics for all coins (with strict rate limiting)
-    this.app.post('/api/collect', strictLimiter, async (req, res, next) => {
+    // Collect metrics for all coins (REQUIRES ADMIN AUTH - very expensive operation)
+    this.app.post('/api/collect', requireAuth, requireAdmin, strictKeyLimiter, async (req, res, next) => {
       try {
         const coins = await this.db.getActiveCoins();
         const runId = await this.db.startCollectionRun(coins.length);
         
         // Start collection in background
         this.collectAllMetrics(runId, coins).catch(error => {
-          console.error('Collection run failed:', error);
+          logger.error('Collection run failed:', { error });
         });
         
         res.json({
@@ -246,8 +258,8 @@ export class APIServer {
       }
     });
 
-    // Get collection run summary
-    this.app.get('/api/collection-runs', async (req, res, next) => {
+    // Get collection run summary (with optional auth)
+    this.app.get('/api/collection-runs', optionalAuth, standardKeyLimiter, async (req, res, next) => {
       try {
         const limit = parseInt(req.query.limit as string) || 10;
         const runs = await this.db.getCollectionRunSummary(limit);
@@ -262,8 +274,8 @@ export class APIServer {
       }
     });
 
-    // Get metrics summary
-    this.app.get('/api/summary', async (req, res, next) => {
+    // Get metrics summary (with optional auth)
+    this.app.get('/api/summary', optionalAuth, standardKeyLimiter, async (req, res, next) => {
       try {
         const summary = await this.db.getMetricsSummary();
         res.json({

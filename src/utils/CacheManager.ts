@@ -17,6 +17,7 @@ export class CacheManager {
   private memoryCache: Map<string, { value: any; expiry: number }> = new Map();
   private connectionAttempts: number = 0;
   private maxConnectionAttempts: number = 3;
+  private memoryCacheMaxSize: number = 1000;
   private ttls: {
     short: number;
     medium: number;
@@ -24,7 +25,7 @@ export class CacheManager {
     veryLong: number;
   };
   
-  constructor(redisUrl?: string, ttls?: any) {
+  constructor(redisUrl?: string, ttls?: any, memoryCacheMaxSize?: number) {
     this.redisUrl = redisUrl || 'redis://localhost:6379';
     this.ttls = ttls || {
       short: 300,      // 5 minutes
@@ -32,6 +33,7 @@ export class CacheManager {
       long: 86400,     // 24 hours
       veryLong: 604800, // 7 days
     };
+    this.memoryCacheMaxSize = memoryCacheMaxSize || parseInt(process.env.MEMORY_CACHE_MAX_SIZE || '1000');
     
     // Lazy initialization - don't connect immediately
     this.initializeRedis();
@@ -152,8 +154,8 @@ export class CacheManager {
     const expiry = Date.now() + (ttlSeconds * 1000);
     this.memoryCache.set(key, { value, expiry });
     
-    // Clean up expired entries periodically
-    if (this.memoryCache.size > 1000) {
+    // Clean up expired entries periodically when cache size exceeds threshold
+    if (this.memoryCache.size > this.memoryCacheMaxSize) {
       this.cleanupMemoryCache();
     }
   }
@@ -414,10 +416,29 @@ export class CacheManager {
       console.warn(`Cache warning (getStats): ${(error as Error).message}`);
     }
     
-    // Fall back to memory cache stats
+    // Fall back to memory cache stats with efficient size estimation
+    // Estimate memory by sampling a few entries instead of serializing all
+    let estimatedMemory = 0;
+    const sampleSize = Math.min(10, this.memoryCache.size);
+    
+    if (sampleSize > 0) {
+      let sampleMemory = 0;
+      let count = 0;
+      
+      for (const [key, cached] of this.memoryCache.entries()) {
+        if (count >= sampleSize) break;
+        sampleMemory += key.length + JSON.stringify(cached.value).length;
+        count++;
+      }
+      
+      // Extrapolate from sample to estimate total memory
+      const avgEntrySize = sampleMemory / sampleSize;
+      estimatedMemory = avgEntrySize * this.memoryCache.size;
+    }
+    
     return {
       keys: this.memoryCache.size,
-      memory: `${Math.round(JSON.stringify(Array.from(this.memoryCache.entries())).length / 1024)}KB`,
+      memory: `${Math.round(estimatedMemory / 1024)}KB`,
       hits: 0,
       misses: 0,
       mode: 'memory',

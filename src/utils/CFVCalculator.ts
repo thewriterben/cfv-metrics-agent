@@ -48,8 +48,8 @@ export class CFVCalculator {
       }
     }
     
-    // Ensure minimum values (floor at 1) to prevent division issues and invalid calculations
-    // This prevents pow(0, weight) which equals 0 and would make entire calculation 0
+    // Ensure minimum values (floor at 1) to prevent pow(0, weight) = 0
+    // which would zero out the entire network power score calculation
     const safeCommunitySize = Math.max(1, communitySize);
     const safeAnnualTxValue = Math.max(1, annualTxValue);
     const safeAnnualTxCount = Math.max(1, annualTxCount);

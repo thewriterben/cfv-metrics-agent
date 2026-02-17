@@ -203,7 +203,7 @@ export class CollectionScheduler {
         successful,
         failed,
         total: coins.length,
-        successRate: ((successful / coins.length) * 100).toFixed(1) + '%'
+        successRate: ((successful / coins.length) * 100).toFixed(1)
       });
     } catch (error) {
       logger.error('Collection run failed', { error: error instanceof Error ? error.message : String(error) });

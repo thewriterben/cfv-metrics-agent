@@ -113,7 +113,7 @@ export class RateLimitMonitor {
     if (percentage >= this.WARNING_THRESHOLD * 100) {
       logger.warn('Rate limit warning', {
         service,
-        percentage: percentage.toFixed(1) + '%',
+        percentage,
         used: metric.used,
         limit: metric.limit
       });

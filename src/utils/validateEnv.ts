@@ -117,20 +117,10 @@ export function validateAndReportEnvironment(): void {
   
   // Print errors and exit if validation failed
   if (!result.valid) {
-    logger.error('Environment validation failed', { errors: result.errors });
-    
-    // Only show example in development
-    if (process.env.NODE_ENV !== 'production') {
-      logger.info('Example .env configuration', {
-        COINGECKO_API_KEY: 'your_api_key_here',
-        DB_HOST: 'localhost',
-        DB_USER: 'root',
-        DB_PASSWORD: 'your_password',
-        DB_NAME: 'cfv_metrics',
-        API_PORT: '3000',
-        NODE_ENV: 'development'
-      });
-    }
+    logger.error('Environment validation failed', { 
+      errors: result.errors,
+      requiredVariables: ['COINGECKO_API_KEY', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'API_PORT', 'NODE_ENV']
+    });
     
     throw new Error('Environment validation failed. Please fix the errors above.');
   }

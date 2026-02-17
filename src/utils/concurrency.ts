@@ -5,6 +5,13 @@
  */
 
 /**
+ * Result type for concurrent execution
+ */
+export type ConcurrentResult<T> = 
+  | { success: true; value: T }
+  | { success: false; error: Error };
+
+/**
  * Execute tasks with a concurrency limit using a queue pattern
  * 
  * @param tasks - Array of task functions to execute
@@ -14,8 +21,8 @@
 export async function executeConcurrent<T>(
   tasks: Array<() => Promise<T>>,
   concurrency: number
-): Promise<T[]> {
-  const results: T[] = new Array(tasks.length);
+): Promise<ConcurrentResult<T>[]> {
+  const results: ConcurrentResult<T>[] = new Array(tasks.length);
   let currentIndex = 0;
   
   // Worker function that processes tasks from the queue
@@ -25,10 +32,13 @@ export async function executeConcurrent<T>(
       const task = tasks[index];
       
       try {
-        results[index] = await task();
+        const value = await task();
+        results[index] = { success: true, value };
       } catch (error) {
-        // Store error as result (caller should handle)
-        results[index] = error as T;
+        results[index] = { 
+          success: false, 
+          error: error instanceof Error ? error : new Error(String(error))
+        };
       }
     }
   }
@@ -56,8 +66,8 @@ export async function executeConcurrent<T>(
 export async function executeBatchedConcurrent<T>(
   taskGroups: Record<string, Array<() => Promise<T>>>,
   concurrencyPerGroup: Record<string, number>
-): Promise<Record<string, T[]>> {
-  const results: Record<string, T[]> = {};
+): Promise<Record<string, ConcurrentResult<T>[]>> {
+  const results: Record<string, ConcurrentResult<T>[]> = {};
   
   // Execute all groups in parallel, but with concurrency limits within each group
   await Promise.all(

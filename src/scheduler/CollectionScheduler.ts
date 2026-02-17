@@ -1,6 +1,7 @@
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
 import { executeBatchedConcurrent } from '../utils/concurrency.js';
+import type { TransactionMetrics } from '../types/index.js';
 
 /**
  * Collection Scheduler
@@ -20,6 +21,7 @@ export interface SchedulerConfig {
   intervalMinutes: number; // Collection interval in minutes
   delayBetweenCoins: number; // Delay between coin collections in ms (deprecated, kept for backward compatibility)
   concurrency?: {
+    [source: string]: number; // Allow any source key with number value
     '3xpl': number;
     'coingecko': number;
     'custom-dash': number;
@@ -143,31 +145,37 @@ export class CollectionScheduler {
       console.log('');
 
       // Create task groups for concurrent execution
-      const taskGroups: Record<string, Array<() => Promise<{ coin: any; success: boolean; error?: string; duration: number; metrics?: any }>>> = {};
+      interface CoinInfo {
+        name: string;
+        symbol: string;
+        source: string;
+      }
+      
+      interface CollectionTaskResult {
+        coin: CoinInfo;
+        duration: number;
+        metrics: TransactionMetrics;
+      }
+      
+      const taskGroups: Record<string, Array<() => Promise<CollectionTaskResult>>> = {};
       const concurrencyLimits: Record<string, number> = {};
 
       for (const [source, sourceCoins] of Object.entries(coinsBySource)) {
         taskGroups[source] = sourceCoins.map(coin => async () => {
-          try {
-            console.log(`\n📊 Collecting ${coin.name} (${coin.symbol}) from ${coin.source}...`);
-            
-            const startTime = Date.now();
-            const metrics = await this.collector.getTransactionMetrics(coin.symbol);
-            const duration = Date.now() - startTime;
+          console.log(`\n📊 Collecting ${coin.name} (${coin.symbol}) from ${coin.source}...`);
+          
+          const startTime = Date.now();
+          const metrics = await this.collector.getTransactionMetrics(coin.symbol);
+          const duration = Date.now() - startTime;
 
-            await this.db.saveMetrics(coin.symbol, metrics);
-            
-            console.log(`✅ ${coin.symbol} success in ${duration}ms`);
-            console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
-            console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
-            console.log(`   Confidence: ${metrics.confidence}`);
+          await this.db.saveMetrics(coin.symbol, metrics);
+          
+          console.log(`✅ ${coin.symbol} success in ${duration}ms`);
+          console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
+          console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
+          console.log(`   Confidence: ${metrics.confidence}`);
 
-            return { coin, success: true, duration, metrics };
-          } catch (error) {
-            const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-            console.error(`❌ Failed to collect ${coin.symbol}:`, error);
-            return { coin, success: false, error: errorMsg, duration: 0 };
-          }
+          return { coin, duration, metrics };
         });
         concurrencyLimits[source] = this.config.concurrency![source] || 1;
       }
@@ -182,7 +190,8 @@ export class CollectionScheduler {
             successful++;
           } else {
             failed++;
-            lastError = result.error;
+            lastError = result.error.message;
+            console.error(`❌ Collection failed:`, result.error);
           }
         }
       }

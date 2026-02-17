@@ -12,7 +12,7 @@ export class CoinGeckoAPICollector {
   // Transaction estimation constants
   private static readonly MIN_AVG_TX_VALUE = 100; // Minimum average transaction value in USD
   private static readonly MAX_AVG_TX_VALUE = 10000; // Maximum average transaction value in USD
-  private static readonly MARKET_CAP_RATIO = 0.0001; // 0.01% of market cap used for avgTxValue estimation
+  private static readonly MARKET_CAP_RATIO = 0.0001; // 0.0001 of market cap (0.01%) used for avgTxValue estimation
   private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
   private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
 
@@ -74,9 +74,9 @@ export class CoinGeckoAPICollector {
       // avgTxValue estimation is crude and varies significantly by coin:
       // - For high-cap coins (BTC, ETH): transactions tend to be larger
       // - For smaller coins: transactions tend to be smaller
-      // Using 0.1% of market cap as avgTxValue leads to systematic underestimation
+      // The old approach used 0.001 (0.1%) of market cap, leading to systematic underestimation
       // 
-      // Improved heuristic: Use volume-based approach
+      // Improved heuristic: Use volume-based approach with MARKET_CAP_RATIO (0.0001 = 0.01%)
       // Assume average tx value is proportional to market activity
       // For most coins, avgTxValue ranges from $100 to $10,000
       // This is still an estimate - real blockchain data would be more accurate

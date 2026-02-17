@@ -12,6 +12,13 @@ import { RateLimiter } from '../utils/RateLimiter.js';
 import { CircuitBreaker } from '../utils/CircuitBreaker.js';
 import { RequestCoalescer } from '../utils/RequestCoalescer.js';
 import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
+import { CFVCalculator } from '../utils/CFVCalculator.js';
+import {
+  CIRCULATING_SUPPLY_DIVISOR,
+  MAX_ONCHAIN_SCORE,
+  STARS_WEIGHT_DIVISOR,
+  FORKS_WEIGHT_DIVISOR,
+} from '../utils/CommunityConstants.js';
 
 export class CoinGeckoCollector implements MetricCollector {
   name = 'CoinGecko';
@@ -167,7 +174,7 @@ export class CoinGeckoCollector implements MetricCollector {
     const stars = data.developer_data?.stars || 0;
     const forks = data.developer_data?.forks || 0;
     
-    // Composite scoring with default weights from CFVCalculator
+    // Composite scoring with weights from CFVCalculator
     // On-chain: 50%, GitHub: 30%, Social: 20%
     // Note: CoinGecko doesn't provide on-chain address data directly,
     // so we estimate it from other available metrics or use 0 with lower confidence
@@ -181,7 +188,7 @@ export class CoinGeckoCollector implements MetricCollector {
     // Calculate GitHub component (contributors weighted more than stars/forks)
     // Contributors are the most meaningful metric
     const githubScore = contributors > 0 
-      ? contributors + (stars / 1000) + (forks / 100)
+      ? contributors + (stars / STARS_WEIGHT_DIVISOR) + (forks / FORKS_WEIGHT_DIVISOR)
       : 0;
     
     // On-chain estimation (fallback when not available)
@@ -189,15 +196,17 @@ export class CoinGeckoCollector implements MetricCollector {
     // or leave at 0 if not available (will lower confidence)
     const circulatingSupply = data.market_data?.circulating_supply || 0;
     const onChainScore = circulatingSupply > 0 
-      ? Math.min(circulatingSupply / 1000, 1000000) // Cap at 1M to avoid skewing
+      ? Math.min(circulatingSupply / CIRCULATING_SUPPLY_DIVISOR, MAX_ONCHAIN_SCORE)
       : 0;
     
-    // Apply composite weights (from CFVCalculator)
-    // onChain: 0.5, github: 0.3, social: 0.2
+    // Get community weights from CFVCalculator (single source of truth)
+    const weights = CFVCalculator.getCommunityWeights();
+    
+    // Apply composite weights
     const communitySize = Math.round(
-      onChainScore * 0.5 +
-      githubScore * 0.3 +
-      socialScore * 0.2
+      onChainScore * weights.onChain +
+      githubScore * weights.github +
+      socialScore * weights.social
     );
     
     // Determine confidence based on data availability across all categories
@@ -232,7 +241,7 @@ export class CoinGeckoCollector implements MetricCollector {
         onChainEstimated: true,
         // Composite info
         categoriesAvailable,
-        weights: { onChain: 0.5, github: 0.3, social: 0.2 },
+        weights,
         note: 'Community size uses composite scoring: onChain (50%) + GitHub (30%) + social (20%)',
       },
     };

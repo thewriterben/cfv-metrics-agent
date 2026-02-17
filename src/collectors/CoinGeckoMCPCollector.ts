@@ -1,6 +1,13 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { SimpleCFVMetrics, DataSource, ValidationResult } from '../types/index.js';
+import { CFVCalculator } from '../utils/CFVCalculator.js';
+import {
+  CIRCULATING_SUPPLY_DIVISOR,
+  MAX_ONCHAIN_SCORE,
+  STARS_WEIGHT_DIVISOR,
+  FORKS_WEIGHT_DIVISOR,
+} from '../utils/CommunityConstants.js';
 
 /**
  * CoinGecko MCP Collector
@@ -142,20 +149,23 @@ export class CoinGeckoMCPCollector {
       : 0;
     
     const githubScore = contributors > 0 
-      ? contributors + (stars / 1000) + (forks / 100)
+      ? contributors + (stars / STARS_WEIGHT_DIVISOR) + (forks / FORKS_WEIGHT_DIVISOR)
       : 0;
     
     // On-chain estimation
     const circulatingSupply = market.circulating_supply || 0;
     const onChainScore = circulatingSupply > 0 
-      ? Math.min(circulatingSupply / 1000, 1000000)
+      ? Math.min(circulatingSupply / CIRCULATING_SUPPLY_DIVISOR, MAX_ONCHAIN_SCORE)
       : 0;
+    
+    // Get community weights from CFVCalculator (single source of truth)
+    const weights = CFVCalculator.getCommunityWeights();
     
     // Apply composite weights
     return Math.round(
-      onChainScore * 0.5 +
-      githubScore * 0.3 +
-      socialScore * 0.2
+      onChainScore * weights.onChain +
+      githubScore * weights.github +
+      socialScore * weights.social
     );
   }
 

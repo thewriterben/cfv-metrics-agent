@@ -109,9 +109,9 @@ if (!initDbContent.includes('ON DUPLICATE KEY UPDATE')) {
 }
 console.log('✅ PASSED: Coin data insertion is safe\n');
 
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 console.log('🎉 All tests passed! Migration system is correctly implemented');
-console.log('=' .repeat(60));
+console.log('='.repeat(60));
 console.log('\nKey improvements:');
 console.log('✅ DROP TABLE statements removed - no data loss on restart');
 console.log('✅ Migration system tracks schema versions');

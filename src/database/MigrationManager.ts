@@ -27,6 +27,14 @@ interface MigrationRecord {
   applied_at: Date;
 }
 
+interface VersionRow {
+  version: number;
+}
+
+interface CurrentVersionRow {
+  current_version: number | null;
+}
+
 export class MigrationManager {
   private config: MigrationConfig;
   private migrationsDir: string;
@@ -55,10 +63,10 @@ export class MigrationManager {
    * Get list of applied migrations from database
    */
   private async getAppliedMigrations(connection: mysql.Connection): Promise<Set<number>> {
-    const [rows] = await connection.query<any[]>(
+    const [rows] = await connection.query<mysql.RowDataPacket[]>(
       'SELECT version FROM schema_version ORDER BY version'
     );
-    return new Set(rows.map(row => row.version));
+    return new Set((rows as VersionRow[]).map(row => row.version));
   }
 
   /**
@@ -200,11 +208,11 @@ export class MigrationManager {
 
       await this.ensureSchemaVersionTable(connection);
 
-      const [rows] = await connection.query<any[]>(
+      const [rows] = await connection.query<mysql.RowDataPacket[]>(
         'SELECT MAX(version) as current_version FROM schema_version'
       );
 
-      return rows[0]?.current_version || 0;
+      return (rows as CurrentVersionRow[])[0]?.current_version || 0;
 
     } finally {
       if (connection) {

@@ -162,7 +162,7 @@ describe('Database Migration Tests', () => {
       expect(rows.length).toBeGreaterThan(0);
       
       // Check that migration 002 is recorded
-      const migration002 = rows.find((row: any) => row.version === 2);
+      const migration002 = rows.find((row: mysql.RowDataPacket) => row.version === 2);
       expect(migration002).toBeDefined();
       expect(migration002?.name).toContain('collector');
     });

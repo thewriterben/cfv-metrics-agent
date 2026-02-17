@@ -95,7 +95,7 @@ export class RequestCoalescer<T = any> {
         count++;
       }
     }
-    logger.info("RequestCoalescer: Invalidated cache entries", { count, pattern: "matching" });
+    logger.info("RequestCoalescer: Invalidated cache entries", { count });
   }
 
   /**

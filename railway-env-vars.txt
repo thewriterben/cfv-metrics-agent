@@ -40,6 +40,7 @@ CACHE_TTL_LONG=86400
 # Security
 # SECURITY: Set to your actual frontend domain(s). Never use * in production.
 # Comma-separated list of trusted frontend domains (e.g., https://cfv-calculator.vercel.app,https://example.com)
+# IMPORTANT: Replace the placeholder below with your actual domain(s) before deploying!
 ALLOWED_ORIGINS=https://your-frontend-domain.com
 
 # SECURITY: Must be true in production. See AUTHENTICATION.md for setup.

@@ -1,15 +1,22 @@
 -- CFV Metrics Agent Database Schema
--- Version: 1.0
+-- Version: 1.0 (DEPRECATED - FOR REFERENCE ONLY)
 -- Date: 2026-02-02
-
--- Drop existing tables if they exist
-DROP TABLE IF EXISTS metric_history;
-DROP TABLE IF EXISTS metrics;
-DROP TABLE IF EXISTS coins;
-DROP TABLE IF EXISTS collection_runs;
+--
+-- ⚠️  WARNING: DO NOT USE THIS FILE DIRECTLY ⚠️ 
+-- This file is kept for reference only and should NOT be executed directly.
+-- 
+-- The application uses a migration system to manage database schema safely.
+-- See: database/migrations/ directory and src/database/MigrationManager.ts
+--
+-- To initialize the database, run the application which will automatically
+-- apply migrations. Migrations never drop tables and preserve all data.
+--
+-- ===========================================================================
+-- REFERENCE SCHEMA BELOW (for documentation purposes only)
+-- ===========================================================================
 
 -- Coins table
-CREATE TABLE coins (
+CREATE TABLE IF NOT EXISTS coins (
   id INT PRIMARY KEY AUTO_INCREMENT,
   symbol VARCHAR(10) NOT NULL UNIQUE,
   name VARCHAR(100) NOT NULL,
@@ -24,7 +31,7 @@ CREATE TABLE coins (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Metrics table (current/latest metrics)
-CREATE TABLE metrics (
+CREATE TABLE IF NOT EXISTS metrics (
   id INT PRIMARY KEY AUTO_INCREMENT,
   coin_id INT NOT NULL,
   annual_tx_count BIGINT NOT NULL,
@@ -43,7 +50,7 @@ CREATE TABLE metrics (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Metric history table (historical data)
-CREATE TABLE metric_history (
+CREATE TABLE IF NOT EXISTS metric_history (
   id INT PRIMARY KEY AUTO_INCREMENT,
   coin_id INT NOT NULL,
   annual_tx_count BIGINT NOT NULL,
@@ -61,7 +68,7 @@ CREATE TABLE metric_history (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Collection runs table (tracking data collection jobs)
-CREATE TABLE collection_runs (
+CREATE TABLE IF NOT EXISTS collection_runs (
   id INT PRIMARY KEY AUTO_INCREMENT,
   status ENUM('running', 'completed', 'failed') NOT NULL,
   coins_total INT NOT NULL,
@@ -76,7 +83,7 @@ CREATE TABLE collection_runs (
   INDEX idx_started_at (started_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Insert initial coin data
+-- Insert initial coin data (safe with ON DUPLICATE KEY UPDATE)
 INSERT INTO coins (symbol, name, coingecko_id, collector_type, confidence_level) VALUES
 ('BTC', 'Bitcoin', 'bitcoin', 'CoinGeckoAPI', 'MEDIUM'),
 ('ETH', 'Ethereum', 'ethereum', 'CoinGeckoAPI', 'MEDIUM'),
@@ -88,12 +95,17 @@ INSERT INTO coins (symbol, name, coingecko_id, collector_type, confidence_level)
 ('XEC', 'eCash', 'ecash', 'CoinGeckoAPI', 'MEDIUM'),
 ('XNO', 'Nano', 'nano', 'NanoRPC', 'HIGH'),
 ('NEAR', 'NEAR Protocol', 'near', 'NearBlocksAPI', 'MEDIUM'),
-('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM');
+('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM')
+ON DUPLICATE KEY UPDATE
+  name = VALUES(name),
+  coingecko_id = VALUES(coingecko_id),
+  collector_type = VALUES(collector_type),
+  confidence_level = VALUES(confidence_level);
 
 -- Create views for easy querying
 
 -- Latest metrics view
-CREATE VIEW v_latest_metrics AS
+CREATE OR REPLACE VIEW v_latest_metrics AS
 SELECT 
   c.symbol,
   c.name,
@@ -111,7 +123,7 @@ WHERE c.active = TRUE
 ORDER BY c.symbol;
 
 -- Metrics summary view
-CREATE VIEW v_metrics_summary AS
+CREATE OR REPLACE VIEW v_metrics_summary AS
 SELECT 
   COUNT(*) as total_coins,
   SUM(CASE WHEN m.id IS NOT NULL THEN 1 ELSE 0 END) as coins_with_data,
@@ -124,7 +136,7 @@ LEFT JOIN metrics m ON c.id = m.coin_id
 WHERE c.active = TRUE;
 
 -- Collection run summary view
-CREATE VIEW v_collection_runs AS
+CREATE OR REPLACE VIEW v_collection_runs AS
 SELECT 
   id,
   status,

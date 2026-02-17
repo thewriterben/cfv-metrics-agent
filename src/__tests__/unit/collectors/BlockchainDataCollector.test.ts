@@ -21,7 +21,7 @@ describe('BlockchainDataCollector', () => {
   });
 
   describe('Cache bounded size and LRU eviction', () => {
-    it('should evict oldest entry when cache exceeds max size', async () => {
+    it('should evict oldest entry when cache exceeds max size', () => {
       // Create a collector with a very small cache for testing
       const testCollector = new BlockchainDataCollector({
         cacheEnabled: true,
@@ -67,7 +67,7 @@ describe('BlockchainDataCollector', () => {
       expect((testCollector as any).getFromCache('COIN1')).not.toBeNull();
     });
 
-    it('should clean expired entries when cache is getting full', async () => {
+    it('should clean expired entries when cache exceeds 50% capacity', async () => {
       // Create collector with short TTL
       const testCollector = new BlockchainDataCollector({
         cacheEnabled: true,

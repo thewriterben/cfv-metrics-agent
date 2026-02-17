@@ -189,7 +189,7 @@ export class BlockchainDataCollector {
       this.cleanExpiredEntries();
     }
     
-    // Evict oldest entry if cache is full
+    // Evict oldest entry if cache is still full after cleanup
     if (this.cache.size >= BlockchainDataCollector.MAX_CACHE_SIZE) {
       const oldestKey = this.cache.keys().next().value;
       if (oldestKey !== undefined) {

@@ -4,6 +4,7 @@
  */
 
 import { DashApiClient } from './collectors/DashApiClient.js';
+import { OLD_HARDCODED_DASH_VALUES, DASH_NETWORK_CONSTANTS } from './__tests__/helpers/dash-test-constants.js';
 
 // Mock axios
 const mockAxios = {
@@ -67,15 +68,14 @@ async function testDashCollectorLogic() {
   console.log('\n' + '='.repeat(60));
   console.log('Testing Calculation Logic:\n');
   
-  // Test calculation logic manually
-  const blocksPerDay = 576;
-  const avgTxPerBlock = 100;
+  // Test calculation logic manually using shared constants
+  const { blocksPerDay, avgTxPerBlock } = DASH_NETWORK_CONSTANTS;
   const dailyTxCount = blocksPerDay * avgTxPerBlock;
   const annualTxCount = Math.round(dailyTxCount * 365);
   
   console.log(`Calculated Annual Tx Count: ${annualTxCount.toLocaleString()}`);
-  console.log('  - Based on 576 blocks/day (2.5 min block time)');
-  console.log('  - Assuming 100 tx per block average');
+  console.log(`  - Based on ${blocksPerDay} blocks/day (2.5 min block time)`);
+  console.log(`  - Assuming ${avgTxPerBlock} tx per block average`);
   
   const volume24h = 125000000; // Mock volume
   const annualTxValue = volume24h * 365;
@@ -84,28 +84,21 @@ async function testDashCollectorLogic() {
   console.log(`\nCalculated Annual Tx Value: $${annualTxValue.toLocaleString()}`);
   console.log(`Calculated Avg Tx Value: $${avgTxValue.toFixed(2)}`);
   
-  // Verify these are NOT the old hardcoded values
-  const oldHardcodedValues = {
-    annualTxCount: 18250000,
-    annualTxValue: 500000000,
-    avgTxValue: 27.40
-  };
-  
   console.log('\n' + '='.repeat(60));
   console.log('Verification Against Old Hardcoded Values:\n');
-  console.log(`Old hardcoded annualTxCount: ${oldHardcodedValues.annualTxCount.toLocaleString()}`);
+  console.log(`Old hardcoded annualTxCount: ${OLD_HARDCODED_DASH_VALUES.annualTxCount.toLocaleString()}`);
   console.log(`New calculated annualTxCount: ${annualTxCount.toLocaleString()}`);
   
-  if (annualTxCount !== oldHardcodedValues.annualTxCount) {
+  if (annualTxCount !== OLD_HARDCODED_DASH_VALUES.annualTxCount) {
     console.log('✅ Annual transaction count is calculated, not hardcoded');
   } else {
     console.log('⚠️  Annual transaction count matches old hardcoded value (coincidence?)');
   }
   
-  console.log(`\nOld hardcoded annualTxValue: $${oldHardcodedValues.annualTxValue.toLocaleString()}`);
+  console.log(`\nOld hardcoded annualTxValue: $${OLD_HARDCODED_DASH_VALUES.annualTxValue.toLocaleString()}`);
   console.log(`New calculated annualTxValue: $${annualTxValue.toLocaleString()}`);
   
-  if (annualTxValue !== oldHardcodedValues.annualTxValue) {
+  if (annualTxValue !== OLD_HARDCODED_DASH_VALUES.annualTxValue) {
     console.log('✅ Annual transaction value is calculated from market data, not hardcoded');
   }
   

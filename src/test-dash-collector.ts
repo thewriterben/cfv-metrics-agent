@@ -4,6 +4,7 @@
  */
 
 import { DashApiClient } from './collectors/DashApiClient.js';
+import { OLD_HARDCODED_DASH_VALUES } from './__tests__/helpers/dash-test-constants.js';
 
 async function testDashCollector() {
   console.log('Testing DASH Collector - Real API Integration\n');
@@ -33,16 +34,10 @@ async function testDashCollector() {
     console.log('\n' + '='.repeat(60));
     
     // Verify we're NOT getting the old hardcoded values
-    const oldHardcodedValues = {
-      annualTxCount: 18250000,
-      annualTxValue: 500000000,
-      avgTxValue: 27.40
-    };
-    
     const isHardcoded = 
-      metrics.annualTxCount === oldHardcodedValues.annualTxCount &&
-      metrics.annualTxValue === oldHardcodedValues.annualTxValue &&
-      Math.abs(metrics.avgTxValue - oldHardcodedValues.avgTxValue) < 0.01;
+      metrics.annualTxCount === OLD_HARDCODED_DASH_VALUES.annualTxCount &&
+      metrics.annualTxValue === OLD_HARDCODED_DASH_VALUES.annualTxValue &&
+      Math.abs(metrics.avgTxValue - OLD_HARDCODED_DASH_VALUES.avgTxValue) < 0.01;
     
     if (isHardcoded) {
       console.log('❌ ERROR: Still getting hardcoded values!');

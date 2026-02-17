@@ -2,6 +2,7 @@ import * as dotenv from 'dotenv';
 import { APIServer } from './api/server.js';
 import { CollectionScheduler } from './scheduler/CollectionScheduler.js';
 import { initializeDatabase } from './database/initDatabase.js';
+import { validateAndReportEnvironment } from './utils/validateEnv.js';
 
 /**
  * CFV Metrics Agent - Main Application
@@ -15,6 +16,9 @@ import { initializeDatabase } from './database/initDatabase.js';
 
 // Load environment variables
 dotenv.config();
+
+// Validate environment variables
+validateAndReportEnvironment();
 
 // Configuration
 // Parse database configuration from MYSQL_URL or individual variables
@@ -49,8 +53,16 @@ const dbConfig = parseDatabaseConfig();
 
 // Debug: Check if API key is loaded
 const coingeckoKey = process.env.COINGECKO_API_KEY;
+const isProduction = process.env.NODE_ENV === 'production';
+
 if (coingeckoKey) {
-  console.log(`✅ CoinGecko API key loaded: ${coingeckoKey.substring(0, 8)}...`);
+  if (isProduction) {
+    // Production: Don't show any part of the key
+    console.log('✅ CoinGecko API key loaded');
+  } else {
+    // Development: Show only first 4 characters
+    console.log(`✅ CoinGecko API key loaded: ${coingeckoKey.substring(0, 4)}...`);
+  }
 } else {
   console.log('⚠️  CoinGecko API key not found in environment');
 }
@@ -109,8 +121,20 @@ async function start() {
     console.log('Checking database schema...');
     try {
       await initializeDatabase(config.api.database);
+      console.log('✅ Database initialized successfully');
     } catch (error) {
-      console.log('Note: Database may already be initialized');
+      const err = error as Error;
+      console.error('❌ Database initialization failed:', err.message);
+      console.error('Database config:', {
+        host: config.api.database.host,
+        port: config.api.database.port,
+        database: config.api.database.database,
+        user: config.api.database.user
+      });
+      
+      // Don't exit - allow app to continue if database is optional
+      // or already initialized from a previous run
+      console.log('⚠️  Continuing without fresh database initialization...');
     }
     console.log('');
 

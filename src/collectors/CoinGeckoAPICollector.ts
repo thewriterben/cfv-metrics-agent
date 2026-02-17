@@ -8,6 +8,11 @@ import type { SimpleCFVMetrics, DataSource, ValidationResult } from '../types/in
 export class CoinGeckoAPICollector {
   private apiKey: string;
   private baseUrl: string;
+  
+  // Transaction estimation constants
+  private static readonly MIN_AVG_TX_VALUE = 100; // Minimum average transaction value in USD
+  private static readonly MAX_AVG_TX_VALUE = 10000; // Maximum average transaction value in USD
+  private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
 
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
@@ -74,10 +79,13 @@ export class CoinGeckoAPICollector {
       // For most coins, avgTxValue ranges from $100 to $10,000
       // This is still an estimate - real blockchain data would be more accurate
       //
-      // Clamping: Ensures result is at least $100 and at most $10k
+      // Clamping: Ensures result is at least MIN_AVG_TX_VALUE and at most MAX_AVG_TX_VALUE
       const estimatedAvgTxValue = marketCap > 0 
-        ? Math.max(100, Math.min(marketCap * 0.0001, 10000)) // Clamp between $100 and $10k
-        : price * 100;
+        ? Math.max(
+            CoinGeckoAPICollector.MIN_AVG_TX_VALUE, 
+            Math.min(marketCap * 0.0001, CoinGeckoAPICollector.MAX_AVG_TX_VALUE)
+          )
+        : price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER; // Fallback when no market cap data
       
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
       const annualTxCount = Math.round(dailyTxCount * 365);

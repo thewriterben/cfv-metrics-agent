@@ -1,5 +1,7 @@
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
+import { executeBatchedConcurrent } from '../utils/concurrency.js';
+import type { TransactionMetrics } from '../types/index.js';
 
 /**
  * Collection Scheduler
@@ -17,8 +19,6 @@ export interface SchedulerConfig {
   };
   coingeckoApiKey?: string;
   intervalMinutes: number; // Collection interval in minutes
-  delayBetweenCoins: number; // Delay between coin collections in ms (deprecated, kept for backwards compatibility)
-  maxConcurrency?: number; // Maximum concurrent coin collections (default: 5)
 }
 
 export class CollectionScheduler {
@@ -34,6 +34,18 @@ export class CollectionScheduler {
     this.collector = new BlockchainDataCollector({
       coingeckoApiKey: config.coingeckoApiKey
     });
+
+    // Set default concurrency limits if not provided
+    if (!this.config.concurrency) {
+      this.config.concurrency = {
+        '3xpl': 3,           // 3xpl can handle multiple coins in parallel
+        'coingecko': 5,      // CoinGecko has higher rate limits
+        'custom-dash': 2,    // Custom APIs - moderate concurrency
+        'custom-nano': 2,
+        'custom-near': 2,
+        'custom-icp': 2
+      };
+    }
   }
 
   /**
@@ -177,10 +189,6 @@ export class CollectionScheduler {
       const coins = await this.db.getActiveCoins();
       const runId = await this.db.startCollectionRun(coins.length);
 
-      const maxConcurrency = this.config.maxConcurrency || 5;
-      console.log(`Processing ${coins.length} coins with max concurrency: ${maxConcurrency}`);
-
-      const { successful, failed, lastError } = await this.processCoinsConcurrently(coins, maxConcurrency);
 
       // Update collection run
       const status = failed === 0 ? 'completed' : (successful > 0 ? 'completed' : 'failed');

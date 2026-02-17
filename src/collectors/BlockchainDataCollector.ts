@@ -227,6 +227,26 @@ export class BlockchainDataCollector {
   hasHighConfidenceData(coinSymbol: string): boolean {
     return this.threexplCollector.isSupported(coinSymbol) || coinSymbol === 'DASH';
   }
+
+  /**
+   * Determine the data source for a coin
+   * Used for grouping coins by source for concurrent collection
+   */
+  getDataSource(coinSymbol: string): string {
+    if (coinSymbol === 'DASH') {
+      return 'custom-dash';
+    } else if (coinSymbol === 'XNO' || coinSymbol === 'NANO') {
+      return 'custom-nano';
+    } else if (coinSymbol === 'NEAR') {
+      return 'custom-near';
+    } else if (coinSymbol === 'ICP') {
+      return 'custom-icp';
+    } else if (this.threexplCollector.isSupported(coinSymbol) && process.env.THREEXPL_API_KEY) {
+      return '3xpl';
+    } else {
+      return 'coingecko';
+    }
+  }
 }
 
 export default BlockchainDataCollector;

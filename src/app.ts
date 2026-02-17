@@ -77,8 +77,7 @@ const config = {
     database: dbConfig,
     coingeckoApiKey: coingeckoKey,
     intervalMinutes: parseInt(process.env.COLLECTION_INTERVAL_MINUTES || '60'),
-    delayBetweenCoins: parseInt(process.env.DELAY_BETWEEN_COINS_MS || '5000'), // Deprecated, kept for backwards compatibility
-    maxConcurrency: parseInt(process.env.MAX_COLLECTION_CONCURRENCY || '5')
+
   }
 };
 

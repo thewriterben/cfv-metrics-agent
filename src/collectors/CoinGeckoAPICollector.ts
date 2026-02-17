@@ -140,7 +140,7 @@ export class CoinGeckoAPICollector {
 
     if (metrics.annualTxCount === 0) {
       warnings.push('No transaction data available');
-    } else {
+    } else if (metrics.annualTxCount) {
       warnings.push('Transaction count estimated using volume-based heuristic - real blockchain data recommended for accuracy');
     }
 
@@ -151,7 +151,7 @@ export class CoinGeckoAPICollector {
     // Mark confidence as LOW due to transaction estimation heuristics
     return {
       isValid: errors.length === 0,
-      confidence: metrics.annualTxCount > 0 ? 'LOW' : 'MEDIUM',
+      confidence: (metrics.annualTxCount && metrics.annualTxCount > 0) ? 'LOW' : 'MEDIUM',
       issues: [...errors, ...warnings]
     };
   }

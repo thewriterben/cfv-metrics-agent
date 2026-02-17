@@ -1,14 +1,8 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
-import { logger } from '../utils/logger.js';
-import { performanceMonitor } from '../utils/PerformanceMonitor.js';
-import { metricsCollector } from '../utils/MetricsCollector.js';
-import { HealthChecker } from '../utils/HealthChecker.js';
-import { initializeErrorTracking, sentryRequestHandler, sentryTracingHandler, sentryErrorHandler } from '../utils/errorTracking.js';
-import { requestLogger, errorLogger } from '../middleware/requestLogger.js';
-import { createDashboardRoutes } from './dashboardRoutes.js';
 
 /**
  * CFV Metrics API Server
@@ -33,7 +27,7 @@ export class APIServer {
   private db: DatabaseManager;
   private collector: BlockchainDataCollector;
   private config: APIServerConfig;
-  private healthChecker: HealthChecker;
+
 
   constructor(config: APIServerConfig) {
     this.config = config;
@@ -42,10 +36,7 @@ export class APIServer {
     this.collector = new BlockchainDataCollector({
       coingeckoApiKey: config.coingeckoApiKey
     });
-    this.healthChecker = new HealthChecker(this.db);
 
-    // Initialize error tracking (Sentry) if configured
-    initializeErrorTracking(this.app);
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -94,50 +85,35 @@ export class APIServer {
       
       next();
     });
+
+    // General API rate limiter
+    const apiLimiter = rateLimit({
+      windowMs: parseInt(process.env.RATE_LIMIT_API_WINDOW_MS || '900000'), // 15 minutes
+      max: parseInt(process.env.RATE_LIMIT_API_MAX_REQUESTS || '100'), // 100 requests per window
+      standardHeaders: true,
+      legacyHeaders: false,
+      message: {
+        error: 'Too many requests from this IP, please try again later.',
+        retryAfter: '15 minutes'
+      },
+      handler: (req, res) => {
+        res.status(429).json({
+          success: false,
+          error: 'Too many requests from this IP, please try again later.',
+          retryAfter: '15 minutes'
+        });
+      }
+    });
+
+    // Apply general rate limiter to all API routes
+    this.app.use('/api/', apiLimiter);
   }
 
   /**
    * Setup API routes
    */
   private setupRoutes(): void {
-    // Kubernetes liveness probe - simple check that server is running
-    this.app.get('/health/live', (req, res) => {
-      res.json({ 
-        status: 'alive', 
-        timestamp: new Date() 
-      });
-    });
 
-    // Kubernetes readiness probe - check if ready to serve traffic
-    this.app.get('/health/ready', async (req, res) => {
-      try {
-        const health = await this.healthChecker.checkHealth();
-        const statusCode = health.status === 'healthy' ? 200 : 503;
-        res.status(statusCode).json(health);
-      } catch (error) {
-        logger.error('Readiness check failed', { error });
-        res.status(503).json({
-          status: 'unhealthy',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
-
-    // Detailed health check
-    this.app.get('/health/detailed', async (req, res) => {
-      try {
-        const health = await this.healthChecker.checkHealth();
-        res.json(health);
-      } catch (error) {
-        logger.error('Detailed health check failed', { error });
-        res.status(500).json({
-          status: 'unhealthy',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        });
-      }
-    });
-
-    // Legacy health check endpoint (maintain backward compatibility)
     this.app.get('/health', async (req, res) => {
       try {
         const dbHealthy = await this.db.testConnection();
@@ -154,11 +130,7 @@ export class APIServer {
       }
     });
 
-    // Dashboard and monitoring routes
-    const dashboardRoutes = createDashboardRoutes({ 
-      healthChecker: this.healthChecker 
-    });
-    this.app.use('/', dashboardRoutes);
+
 
     // Get all coins
     this.app.get('/api/coins', async (req, res, next) => {
@@ -190,10 +162,10 @@ export class APIServer {
       }
     });
 
-    // Get metrics for specific coin
-    this.app.get('/api/metrics/:symbol', async (req, res, next) => {
+    // Get metrics for specific coin (with strict rate limiting)
+    this.app.get('/api/metrics/:symbol', strictLimiter, async (req, res, next) => {
       try {
-        const { symbol } = req.params;
+        const symbol = extractSymbol(req.params);
         const metrics = await this.db.getLatestMetrics(symbol.toUpperCase());
         
         if (!metrics) {
@@ -215,7 +187,7 @@ export class APIServer {
     // Get metrics history for specific coin
     this.app.get('/api/metrics/:symbol/history', async (req, res, next) => {
       try {
-        const { symbol } = req.params;
+        const symbol = extractSymbol(req.params);
         const limit = parseInt(req.query.limit as string) || 100;
         
         const history = await this.db.getMetricsHistory(symbol.toUpperCase(), limit);
@@ -230,10 +202,10 @@ export class APIServer {
       }
     });
 
-    // Collect fresh metrics for specific coin
-    this.app.post('/api/collect/:symbol', async (req, res, next) => {
+    // Collect fresh metrics for specific coin (with strict rate limiting)
+    this.app.post('/api/collect/:symbol', strictLimiter, async (req, res, next) => {
       try {
-        const { symbol } = req.params;
+        const symbol = extractSymbol(req.params);
         
         metricsCollector.incrementCounter('api_calls_collect');
         logger.info(`Collecting fresh metrics for ${symbol}...`);
@@ -252,8 +224,8 @@ export class APIServer {
       }
     });
 
-    // Collect metrics for all coins
-    this.app.post('/api/collect', async (req, res, next) => {
+    // Collect metrics for all coins (with strict rate limiting)
+    this.app.post('/api/collect', strictLimiter, async (req, res, next) => {
       try {
         const coins = await this.db.getActiveCoins();
         const runId = await this.db.startCollectionRun(coins.length);

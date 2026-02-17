@@ -1,6 +1,6 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
-import { calculateDaysLive } from '../config/blockchainConfig.js';
+
 
 /**
  * Nano Collector
@@ -40,6 +40,13 @@ interface PriceResponse {
 export class NanoCollector {
   private client: AxiosInstance;
   private endpoint: string;
+  
+  // Nano (formerly RaiBlocks) genesis date
+  private static readonly GENESIS_DATE = '2015-10-01';
+  
+  // Transaction estimation constants
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
+  private static readonly SUPPLY_VELOCITY = 0.05; // 5% annual velocity (conservative estimate)
 
   constructor(config: NanoCollectorConfig = {}) {
     this.endpoint = config.endpoint || 'https://node.somenano.com/proxy';
@@ -82,6 +89,18 @@ export class NanoCollector {
   }
 
   /**
+   * Calculate days since Nano genesis
+   * Nano (formerly RaiBlocks) launched October 2015
+   */
+  private calculateDaysLive(): number {
+    const genesisDate = new Date(NanoCollector.GENESIS_DATE);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - genesisDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
+  }
+
+  /**
    * Get transaction metrics for Nano
    */
   async getTransactionMetrics(): Promise<TransactionMetrics> {
@@ -98,32 +117,27 @@ export class NanoCollector {
       const circulatingSupply = this.rawToNano(supply.available);
       const currentPrice = price?.quotes.USD.price || 0;
 
-      // Calculate daily transaction rate
-      // Nano launched in March 2015, calculate daysLive dynamically
-      const daysLive = calculateDaysLive('XNO');
+
       const blocksPerDay = totalBlocks / daysLive;
 
       // Annual transaction count (blocks per day * 365)
-      const annualTxCount = Math.round(blocksPerDay * 365);
+      const annualTxCount = Math.round(blocksPerDay * NanoCollector.DAYS_PER_YEAR);
 
       // Estimate transaction value
-      // Method: Assume 5% of supply moves annually (conservative velocity estimate)
-      // Note: This is a heuristic. Real on-chain volume data would be more accurate.
-      const supplyVelocity = 0.05; // 5% annual velocity - conservative estimate for fast finality chains
-      const annualSupplyMovement = circulatingSupply * supplyVelocity;
+
       const annualTxValue = annualSupplyMovement * currentPrice;
 
       // Average transaction value
       const avgTxValue = annualTxCount > 0 ? annualTxValue / annualTxCount : 0;
 
+      const issues: string[] = [];
+      issues.push(`Transaction value estimated using ${NanoCollector.SUPPLY_VELOCITY * 100}% velocity heuristic (conservative estimate)`);
+
       return {
         annualTxCount,
         annualTxValue,
         avgTxValue,
-        confidence: 'MEDIUM', // MEDIUM confidence due to velocity estimation heuristic
-        sources: ['Nano RPC (SomeNano)', 'Blockchain Data'],
-        timestamp: new Date(),
-        issues: ['Transaction value estimated using 5% annual velocity heuristic']
+
       };
     } catch (error) {
       throw new Error(`Failed to get Nano metrics: ${error instanceof Error ? error.message : String(error)}`);

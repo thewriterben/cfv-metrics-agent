@@ -72,32 +72,24 @@ railway login
 # Link to project
 railway link
 
-# Connect to MySQL
+# Connect to MySQL (to create database if it doesn't exist)
 railway connect MySQL
 
-# Run schema
-mysql -u $MYSQLUSER -p$MYSQLPASSWORD $MYSQLDATABASE < database/schema.sql
+# Create database if it doesn't exist (one-time step)
+mysql -u $MYSQLUSER -p$MYSQLPASSWORD -e "CREATE DATABASE IF NOT EXISTS $MYSQLDATABASE;"
 ```
 
-**Option B: Using Web Shell**
+**⚠️ IMPORTANT: Do NOT run schema.sql directly!**
 
-1. In Railway dashboard, click on MySQL service
-2. Click "Connect" → "Web Shell"
-3. Copy/paste the schema SQL from `database/schema.sql`
+The application uses a migration system that:
+- Automatically runs on first startup
+- Creates tables safely without dropping existing data
+- Tracks schema versions to apply incremental updates
+- Is idempotent (safe to run multiple times)
 
-**Option C: Using npm script** (add to package.json)
+**Option B: Automatic Initialization (Recommended)**
 
-```json
-{
-  "scripts": {
-    "db:init": "node -e \"require('./dist/database/DatabaseManager').initializeDatabase()\""
-  }
-}
-```
-
-Then run:
-```bash
-railway run npm run db:init
+Simply deploy the application and it will automatically initialize the database on first startup using the migration system.
 ```
 
 ### Step 6: Verify Deployment

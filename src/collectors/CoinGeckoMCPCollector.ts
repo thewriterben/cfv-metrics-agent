@@ -1,6 +1,13 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import type { SimpleCFVMetrics, DataSource, ValidationResult } from '../types/index.js';
+import { CFVCalculator } from '../utils/CFVCalculator.js';
+import {
+  CIRCULATING_SUPPLY_DIVISOR,
+  MAX_ONCHAIN_SCORE,
+  STARS_WEIGHT_DIVISOR,
+  FORKS_WEIGHT_DIVISOR,
+} from '../utils/CommunityConstants.js';
 
 /**
  * CoinGecko MCP Collector
@@ -10,6 +17,10 @@ export class CoinGeckoMCPCollector {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private isConnected = false;
+  
+  // Transaction estimation constants
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
+  private static readonly SUPPLY_MULTIPLIER = 2; // Placeholder: assume 2x supply as annual transactions
 
   // Transaction estimation constants (same as CoinGeckoAPICollector for consistency)
   private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
@@ -127,36 +138,68 @@ export class CoinGeckoMCPCollector {
 
   /**
    * Extract community size from CoinGecko data
+   * Uses composite scoring: onChain (50%), GitHub (30%), Social (20%)
    */
   private extractCommunitySize(data: any): number {
     const community = data.community_data || {};
+    const developer = data.developer_data || {};
+    const market = data.market_data || {};
     
-    // Aggregate multiple community metrics
+    // Social metrics (easier to game)
     const twitter = community.twitter_followers || 0;
     const reddit = community.reddit_subscribers || 0;
     const telegram = community.telegram_channel_user_count || 0;
     
-    // Use the largest community as primary indicator
-    return Math.max(twitter, reddit, telegram);
+    // GitHub metrics (moderate difficulty to game)
+    const contributors = developer.contributors || 0;
+    const stars = developer.stars || 0;
+    const forks = developer.forks || 0;
+    
+    // Calculate component scores
+    const socialMetrics = [twitter, reddit, telegram].filter(v => v > 0);
+    const socialScore = socialMetrics.length > 0 
+      ? socialMetrics.reduce((sum, val) => sum + val, 0) / socialMetrics.length 
+      : 0;
+    
+    const githubScore = contributors > 0 
+      ? contributors + (stars / STARS_WEIGHT_DIVISOR) + (forks / FORKS_WEIGHT_DIVISOR)
+      : 0;
+    
+    // On-chain estimation
+    const circulatingSupply = market.circulating_supply || 0;
+    const onChainScore = circulatingSupply > 0 
+      ? Math.min(circulatingSupply / CIRCULATING_SUPPLY_DIVISOR, MAX_ONCHAIN_SCORE)
+      : 0;
+    
+    // Get community weights from CFVCalculator (single source of truth)
+    const weights = CFVCalculator.getCommunityWeights();
+    
+    // Apply composite weights
+    return Math.round(
+      onChainScore * weights.onChain +
+      githubScore * weights.github +
+      socialScore * weights.social
+    );
   }
 
   /**
    * Estimate annual transaction value
-   * Note: This is an estimation based on market data
+   * HEURISTIC: Based on market data (volume24h × 365)
+   * This assumes current 24h volume is representative of average daily volume
+   * Confidence: LOW-MEDIUM due to volume volatility
    */
   private estimateAnnualTxValue(data: any): number {
     const marketData = data.market_data || {};
     const volume24h = marketData.total_volume?.usd || 0;
     
     // Estimate annual volume (365 days)
-    // This is a rough estimate - actual on-chain data would be more accurate
-    return volume24h * 365;
+    // NOTE: This is a rough estimate - actual on-chain data would be more accurate
+    return volume24h * CoinGeckoMCPCollector.DAYS_PER_YEAR;
   }
 
   /**
    * Estimate annual transaction count
-   * Note: This is an estimation based on volume and market activity
-   * Improved heuristic: Uses volume-based estimation instead of supply-based
+
    */
   private estimateAnnualTxCount(data: any): number {
     const marketData = data.market_data || {};
@@ -165,28 +208,7 @@ export class CoinGeckoMCPCollector {
     const price = marketData.current_price?.usd || 0;
     const circulatingSupply = marketData.circulating_supply || 0;
     
-    // If we have volume data, estimate from that
-    if (volume24h > 0 && marketCap > 0) {
-      // Use tiered approach based on market cap (consistent with CoinGeckoAPICollector)
-      let estimatedAvgTxValue: number;
-      if (marketCap > CoinGeckoMCPCollector.LARGE_CAP_THRESHOLD) {
-        estimatedAvgTxValue = marketCap * CoinGeckoMCPCollector.LARGE_CAP_AVG_TX_RATIO;
-      } else if (marketCap > CoinGeckoMCPCollector.MID_CAP_THRESHOLD) {
-        estimatedAvgTxValue = marketCap * CoinGeckoMCPCollector.MID_CAP_AVG_TX_RATIO;
-      } else {
-        estimatedAvgTxValue = (circulatingSupply > 0 && price > 0)
-          ? (circulatingSupply * price * CoinGeckoMCPCollector.SMALL_CAP_SUPPLY_VELOCITY)
-          : price * CoinGeckoMCPCollector.FALLBACK_TX_MULTIPLIER;
-      }
-      
-      const dailyTxCount = estimatedAvgTxValue > CoinGeckoMCPCollector.MIN_AVG_TX_VALUE
-        ? volume24h / estimatedAvgTxValue 
-        : 0;
-      return Math.round(dailyTxCount * 365);
-    }
-    
-    // Fallback: rough estimate based on supply (conservative)
-    return circulatingSupply * 2;
+
   }
 
   /**
@@ -221,7 +243,7 @@ export class CoinGeckoMCPCollector {
    */
   validateMetrics(metrics: SimpleCFVMetrics): ValidationResult {
     const issues: string[] = [];
-    let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'HIGH';
+    let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
 
     // Check for missing critical data
     if (!metrics.communitySize || metrics.communitySize === 0) {
@@ -239,10 +261,9 @@ export class CoinGeckoMCPCollector {
       confidence = 'LOW';
     }
 
-    // Note about estimated values
+    // Transaction metrics are estimated with LOW confidence
     if (metrics.annualTxValue || metrics.annualTxCount) {
-      issues.push('Transaction metrics are estimated using volume-based heuristics - consider using blockchain explorer data for accuracy');
-      if (confidence === 'HIGH') confidence = 'MEDIUM';
+
     }
 
     return {

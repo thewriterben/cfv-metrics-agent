@@ -26,7 +26,7 @@ describe('CFVCalculator', () => {
     it('should throw error for zero circulating supply', () => {
       const metrics = createTestMetrics({ circulatingSupply: 0 });
       
-      expect(() => CFVCalculator.calculate(metrics)).toThrow('Circulating supply cannot be zero');
+      expect(() => CFVCalculator.calculate(metrics)).toThrow('Supply must be greater than 0');
     });
 
     it('should handle very large numbers without overflow', () => {
@@ -252,6 +252,50 @@ describe('CFVCalculator', () => {
       const description = CFVCalculator.getValuationDescription('fairly valued', 10);
       expect(description).toContain('±20%');
       expect(description).toContain('fairly pricing');
+    });
+  });
+
+  describe('getWeights', () => {
+    it('should return the CFV formula weights', () => {
+      const weights = CFVCalculator.getWeights();
+      
+      expect(weights.communitySize).toBe(0.7);
+      expect(weights.annualTransactionValue).toBe(0.1);
+      expect(weights.annualTransactions).toBe(0.1);
+      expect(weights.developers).toBe(0.1);
+    });
+
+    it('should return a copy of weights, not the original', () => {
+      const weights1 = CFVCalculator.getWeights();
+      const weights2 = CFVCalculator.getWeights();
+      
+      expect(weights1).not.toBe(weights2);
+      expect(weights1).toEqual(weights2);
+    });
+  });
+
+  describe('getCommunityWeights', () => {
+    it('should return the default community composite weights', () => {
+      const weights = CFVCalculator.getCommunityWeights();
+      
+      expect(weights.onChain).toBe(0.5);
+      expect(weights.github).toBe(0.3);
+      expect(weights.social).toBe(0.2);
+    });
+
+    it('should return a copy of weights, not the original', () => {
+      const weights1 = CFVCalculator.getCommunityWeights();
+      const weights2 = CFVCalculator.getCommunityWeights();
+      
+      expect(weights1).not.toBe(weights2);
+      expect(weights1).toEqual(weights2);
+    });
+
+    it('should have weights that sum to 1', () => {
+      const weights = CFVCalculator.getCommunityWeights();
+      const sum = weights.onChain + weights.github + weights.social;
+      
+      expect(sum).toBeCloseTo(1.0, 10);
     });
   });
 });

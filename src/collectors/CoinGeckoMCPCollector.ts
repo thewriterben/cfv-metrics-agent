@@ -118,17 +118,45 @@ export class CoinGeckoMCPCollector {
 
   /**
    * Extract community size from CoinGecko data
+   * Uses composite scoring: onChain (50%), GitHub (30%), Social (20%)
    */
   private extractCommunitySize(data: any): number {
     const community = data.community_data || {};
+    const developer = data.developer_data || {};
+    const market = data.market_data || {};
     
-    // Aggregate multiple community metrics
+    // Social metrics (easier to game)
     const twitter = community.twitter_followers || 0;
     const reddit = community.reddit_subscribers || 0;
     const telegram = community.telegram_channel_user_count || 0;
     
-    // Use the largest community as primary indicator
-    return Math.max(twitter, reddit, telegram);
+    // GitHub metrics (moderate difficulty to game)
+    const contributors = developer.contributors || 0;
+    const stars = developer.stars || 0;
+    const forks = developer.forks || 0;
+    
+    // Calculate component scores
+    const socialMetrics = [twitter, reddit, telegram].filter(v => v > 0);
+    const socialScore = socialMetrics.length > 0 
+      ? socialMetrics.reduce((sum, val) => sum + val, 0) / socialMetrics.length 
+      : 0;
+    
+    const githubScore = contributors > 0 
+      ? contributors + (stars / 1000) + (forks / 100)
+      : 0;
+    
+    // On-chain estimation
+    const circulatingSupply = market.circulating_supply || 0;
+    const onChainScore = circulatingSupply > 0 
+      ? Math.min(circulatingSupply / 1000, 1000000)
+      : 0;
+    
+    // Apply composite weights
+    return Math.round(
+      onChainScore * 0.5 +
+      githubScore * 0.3 +
+      socialScore * 0.2
+    );
   }
 
   /**

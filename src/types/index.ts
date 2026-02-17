@@ -25,6 +25,45 @@ export interface MetricResult {
   metadata?: Record<string, any>;
 }
 
+/**
+ * Community sub-metrics for composite scoring
+ * Addresses issue: reward real activity over vanity metrics
+ */
+export interface CommunitySubMetrics {
+  // On-chain metrics (harder to game)
+  onChain?: {
+    uniqueAddresses?: number;
+    activeAddresses?: number;
+    confidence: ConfidenceLevel;
+  };
+  
+  // Social metrics (easier to game, weighted lower)
+  social?: {
+    twitter?: number;
+    reddit?: number;
+    telegram?: number;
+    discord?: number;
+    confidence: ConfidenceLevel;
+  };
+  
+  // GitHub/developer metrics (moderate difficulty to game)
+  github?: {
+    contributors?: number;
+    stars?: number;
+    forks?: number;
+    confidence: ConfidenceLevel;
+  };
+}
+
+/**
+ * Configuration for community composite scoring weights
+ */
+export interface CommunityWeights {
+  onChain: number;   // Weight for on-chain metrics (default: 0.5)
+  github: number;    // Weight for GitHub metrics (default: 0.3)
+  social: number;    // Weight for social metrics (default: 0.2)
+}
+
 export interface CollectorHealth {
   status: 'healthy' | 'degraded' | 'down';
   lastCheck: Date;

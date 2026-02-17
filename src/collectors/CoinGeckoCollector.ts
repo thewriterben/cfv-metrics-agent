@@ -157,24 +157,59 @@ export class CoinGeckoCollector implements MetricCollector {
   private async collectCommunitySize(coinId: string): Promise<MetricResult> {
     const data = await this.getCoinData(coinId);
     
+    // Social metrics (easier to game)
     const twitter = data.community_data?.twitter_followers || 0;
     const reddit = data.community_data?.reddit_subscribers || 0;
     const telegram = data.community_data?.telegram_channel_user_count || 0;
     
-    // Aggregate community size with weights
-    // Twitter: 1x, Reddit: 1.5x (more engaged), Telegram: 0.8x (may include inactive)
+    // GitHub/developer metrics (moderate difficulty to game)
+    const contributors = data.developer_data?.contributors || 0;
+    const stars = data.developer_data?.stars || 0;
+    const forks = data.developer_data?.forks || 0;
+    
+    // Composite scoring with default weights from CFVCalculator
+    // On-chain: 50%, GitHub: 30%, Social: 20%
+    // Note: CoinGecko doesn't provide on-chain address data directly,
+    // so we estimate it from other available metrics or use 0 with lower confidence
+    
+    // Calculate social component (average of available social metrics)
+    const socialMetrics = [twitter, reddit, telegram].filter(v => v > 0);
+    const socialScore = socialMetrics.length > 0 
+      ? socialMetrics.reduce((sum, val) => sum + val, 0) / socialMetrics.length 
+      : 0;
+    
+    // Calculate GitHub component (contributors weighted more than stars/forks)
+    // Contributors are the most meaningful metric
+    const githubScore = contributors > 0 
+      ? contributors + (stars / 1000) + (forks / 100)
+      : 0;
+    
+    // On-chain estimation (fallback when not available)
+    // Estimate from market activity: use circulating supply as proxy
+    // or leave at 0 if not available (will lower confidence)
+    const circulatingSupply = data.market_data?.circulating_supply || 0;
+    const onChainScore = circulatingSupply > 0 
+      ? Math.min(circulatingSupply / 1000, 1000000) // Cap at 1M to avoid skewing
+      : 0;
+    
+    // Apply composite weights (from CFVCalculator)
+    // onChain: 0.5, github: 0.3, social: 0.2
     const communitySize = Math.round(
-      twitter * 1.0 +
-      reddit * 1.5 +
-      telegram * 0.8
+      onChainScore * 0.5 +
+      githubScore * 0.3 +
+      socialScore * 0.2
     );
     
-    // Determine confidence based on data availability
+    // Determine confidence based on data availability across all categories
     let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'LOW';
-    const sourcesAvailable = [twitter, reddit, telegram].filter(v => v > 0).length;
+    const categoriesAvailable = [
+      onChainScore > 0,
+      githubScore > 0,
+      socialScore > 0
+    ].filter(Boolean).length;
     
-    if (sourcesAvailable >= 3) confidence = 'HIGH';
-    else if (sourcesAvailable >= 2) confidence = 'MEDIUM';
+    if (categoriesAvailable >= 3) confidence = 'HIGH';
+    else if (categoriesAvailable >= 2) confidence = 'MEDIUM';
     
     return {
       value: communitySize,
@@ -182,10 +217,23 @@ export class CoinGeckoCollector implements MetricCollector {
       source: 'CoinGecko',
       timestamp: new Date(),
       metadata: {
+        // Social metrics
         twitter,
         reddit,
         telegram,
-        sourcesAvailable,
+        socialScore,
+        // GitHub metrics
+        contributors,
+        stars,
+        forks,
+        githubScore,
+        // On-chain estimation
+        onChainScore,
+        onChainEstimated: true,
+        // Composite info
+        categoriesAvailable,
+        weights: { onChain: 0.5, github: 0.3, social: 0.2 },
+        note: 'Community size uses composite scoring: onChain (50%) + GitHub (30%) + social (20%)',
       },
     };
   }

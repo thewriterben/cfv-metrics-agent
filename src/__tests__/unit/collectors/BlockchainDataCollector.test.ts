@@ -1,4 +1,4 @@
-import { describe, it, expect, jest, beforeEach } from '@jest/globals';
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals';
 import { BlockchainDataCollector } from '../../../collectors/BlockchainDataCollector.js';
 import { logger } from '../../../utils/logger.js';
 

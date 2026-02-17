@@ -1,6 +1,8 @@
 # Collector Coverage Documentation
 
-This document provides a comprehensive overview of the data sources and confidence levels for each of the 12 DGF (Digital Gold Fund) coins supported by the CFV Metrics Agent.
+This document provides a comprehensive overview of the data sources and confidence levels for the DGF (Digital Gold Fund) coins supported by the CFV Metrics Agent.
+
+**Note**: The database currently initializes 12 coins (BTC, ETH, DASH, DGB, XMR, RVN, XCH, XEC, XNO, NEAR, ICP, ZCL). EGLD (MultiversX) is referenced in architecture documentation but not yet added to the database.
 
 ## Data Source Summary
 
@@ -17,6 +19,7 @@ This document provides a comprehensive overview of the data sources and confiden
 | Monero | XMR | CoinGecko only | — | LOW | Privacy coin — on-chain data not accessible |
 | Ravencoin | RVN | CoinGecko only | — | LOW | No blockchain explorer API available |
 | Chia | XCH | CoinGecko only | — | LOW | No blockchain explorer API available |
+| MultiversX | EGLD | CoinGecko only | — | LOW | API exists but not yet integrated |
 | Zclassic | ZCL | CoinGecko only | — | LOW | No blockchain explorer API available |
 
 ## Confidence Level Definitions
@@ -41,6 +44,7 @@ Coins with **only CoinGecko volume estimation**:
 - **Monero (XMR)**: Privacy coin — transaction values are cryptographically hidden by design
 - **Ravencoin (RVN)**: No accessible blockchain explorer API
 - **Chia (XCH)**: No accessible blockchain explorer API
+- **MultiversX (EGLD)**: API exists but not yet integrated
 - **Zclassic (ZCL)**: No accessible blockchain explorer API
 
 These coins rely entirely on CoinGecko's volume estimates (volume24h × 365), which may not accurately reflect real transaction activity. CFV calculations for these coins should be treated as rough estimates only.

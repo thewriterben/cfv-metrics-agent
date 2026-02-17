@@ -223,7 +223,7 @@ export class BlockchainDataCollector {
     fallback: string[];
   } {
     return {
-      threexpl: ThreeXplCollector.getSupportedCoins(), // BTC, ETH, DASH, DGB, XEC
+      threexpl: ThreeXplCollector.getSupportedCoins(), // BTC, ETH, DGB, XEC (Note: DASH uses custom API, not 3xpl)
       custom: ['DASH', 'XNO', 'NEAR', 'ICP'],
       estimatedOnly: ['XMR', 'RVN', 'XCH', 'EGLD', 'ZCL'], // No dedicated collector
       fallback: ['All coins via CoinGecko (estimated)']
@@ -236,7 +236,6 @@ export class BlockchainDataCollector {
   hasHighConfidenceData(coinSymbol: string): boolean {
     // Only coins with dedicated blockchain data sources have HIGH confidence
     const highConfidenceCoins = ['DASH', 'XNO']; // Direct API access
-    const mediumConfidenceCoins = ['BTC', 'ETH', 'DGB', 'XEC']; // 3xpl + CoinGecko fallback
     return highConfidenceCoins.includes(coinSymbol) || 
       (this.threexplCollector.isSupported(coinSymbol) && !!process.env.THREEXPL_API_KEY);
   }

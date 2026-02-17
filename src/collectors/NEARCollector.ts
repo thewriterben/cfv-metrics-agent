@@ -26,6 +26,9 @@ interface NearBlocksStatsResponse {
 export class NEARCollector {
   private client: AxiosInstance;
   private endpoint: string;
+  
+  // NEAR mainnet genesis date
+  private static readonly GENESIS_DATE = '2020-04-22';
 
   constructor(config: NEARCollectorConfig = {}) {
     this.endpoint = config.endpoint || 'https://api.nearblocks.io/v1';
@@ -44,7 +47,7 @@ export class NEARCollector {
    * NEAR mainnet launched April 22, 2020
    */
   private calculateDaysLive(): number {
-    const genesisDate = new Date('2020-04-22'); // NEAR mainnet genesis date
+    const genesisDate = new Date(NEARCollector.GENESIS_DATE);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - genesisDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -98,7 +101,7 @@ export class NEARCollector {
         issues,
         metadata: {
           daysLive,
-          genesisDate: '2020-04-22',
+          genesisDate: NEARCollector.GENESIS_DATE,
           volumeNote: 'Estimated by extrapolating 24h volume to annual'
         }
       };

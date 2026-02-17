@@ -39,6 +39,9 @@ interface PriceResponse {
 export class NanoCollector {
   private client: AxiosInstance;
   private endpoint: string;
+  
+  // Nano (formerly RaiBlocks) genesis date
+  private static readonly GENESIS_DATE = '2015-10-01';
 
   constructor(config: NanoCollectorConfig = {}) {
     this.endpoint = config.endpoint || 'https://node.somenano.com/proxy';
@@ -85,7 +88,7 @@ export class NanoCollector {
    * Nano (formerly RaiBlocks) launched October 2015
    */
   private calculateDaysLive(): number {
-    const genesisDate = new Date('2015-10-01'); // Nano genesis date
+    const genesisDate = new Date(NanoCollector.GENESIS_DATE);
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - genesisDate.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -140,7 +143,7 @@ export class NanoCollector {
         issues,
         metadata: {
           daysLive,
-          genesisDate: '2015-10-01',
+          genesisDate: NanoCollector.GENESIS_DATE,
           supplyVelocity,
           velocityNote: 'Estimated using conservative 5% annual velocity'
         }

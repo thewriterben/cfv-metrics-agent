@@ -1,6 +1,7 @@
 import axios, { AxiosInstance } from 'axios';
 import { TransactionMetrics } from '../types/index.js';
 
+
 /**
  * NEAR Protocol Collector
  * 
@@ -26,6 +27,12 @@ interface NearBlocksStatsResponse {
 export class NEARCollector {
   private client: AxiosInstance;
   private endpoint: string;
+  
+  // NEAR mainnet genesis date
+  private static readonly GENESIS_DATE = '2020-04-22';
+  
+  // Transaction estimation constants
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
 
   constructor(config: NEARCollectorConfig = {}) {
     this.endpoint = config.endpoint || 'https://api.nearblocks.io/v1';
@@ -37,6 +44,18 @@ export class NEARCollector {
         'Content-Type': 'application/json'
       }
     });
+  }
+
+  /**
+   * Calculate days since NEAR genesis
+   * NEAR mainnet launched April 22, 2020
+   */
+  private calculateDaysLive(): number {
+    const genesisDate = new Date(NEARCollector.GENESIS_DATE);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - genesisDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays;
   }
 
   /**
@@ -59,26 +78,35 @@ export class NEARCollector {
       const volume24h = parseFloat(stats.volume);
       const tps = stats.tps;
 
-      // Calculate annual metrics
-      // NEAR has been live since ~April 2020, approximately 5.75 years = 2099 days
-      const daysLive = 2099;
+
       const txnsPerDay = totalTxns / daysLive;
-      const annualTxCount = Math.round(txnsPerDay * 365);
+      const annualTxCount = Math.round(txnsPerDay * NEARCollector.DAYS_PER_YEAR);
 
       // Estimate annual transaction value
-      // Method 1: Use 24h volume * 365
-      const annualTxValue = volume24h * 365;
+      // HEURISTIC: Use 24h volume × 365
+      // This assumes current 24h volume is representative of average daily volume
+      // Confidence: MEDIUM due to volatility in daily volume
+      const annualTxValue = volume24h * NEARCollector.DAYS_PER_YEAR;
 
       // Average transaction value
       const avgTxValue = annualTxCount > 0 ? annualTxValue / annualTxCount : 0;
+
+      const issues: string[] = [];
+      issues.push('Transaction value estimated using 24h volume extrapolation (volume24h × 365)');
 
       return {
         annualTxCount,
         annualTxValue,
         avgTxValue,
         confidence: 'MEDIUM',
-        sources: ['NearBlocks API', 'Indexed Blockchain Data'],
-        timestamp: new Date()
+        sources: ['NearBlocks API', 'Indexed Blockchain Data', 'Volume Extrapolation'],
+        timestamp: new Date(),
+        issues,
+        metadata: {
+          daysLive,
+          genesisDate: NEARCollector.GENESIS_DATE,
+          volumeNote: 'Estimated by extrapolating 24h volume to annual'
+        }
       };
     } catch (error) {
       throw new Error(`Failed to get NEAR metrics: ${error instanceof Error ? error.message : String(error)}`);

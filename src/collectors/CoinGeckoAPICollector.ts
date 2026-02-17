@@ -1,5 +1,12 @@
 import axios from 'axios';
 import type { SimpleCFVMetrics, DataSource, ValidationResult } from '../types/index.js';
+import { CFVCalculator } from '../utils/CFVCalculator.js';
+import {
+  CIRCULATING_SUPPLY_DIVISOR,
+  MAX_ONCHAIN_SCORE,
+  STARS_WEIGHT_DIVISOR,
+  FORKS_WEIGHT_DIVISOR,
+} from '../utils/CommunityConstants.js';
 
 /**
  * CoinGecko REST API Collector
@@ -8,6 +15,26 @@ import type { SimpleCFVMetrics, DataSource, ValidationResult } from '../types/in
 export class CoinGeckoAPICollector {
   private apiKey: string;
   private baseUrl: string;
+  
+  // Transaction estimation constants
+  private static readonly MIN_AVG_TX_VALUE = 100; // Minimum average transaction value in USD
+  private static readonly MAX_AVG_TX_VALUE = 10000; // Maximum average transaction value in USD
+  private static readonly MARKET_CAP_RATIO = 0.0001; // 0.0001 of market cap (0.01%) used for avgTxValue estimation
+  private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
+
+  // Transaction estimation constants
+  // Rationale: Different market cap tiers have different transaction patterns
+  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
+  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
+  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;      // 0.05% of market cap
+  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
+  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
+  private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
+  private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
+  // Note: Small cap uses 1% (not 5% like Nano's annual velocity) because this represents
+  // the supply fraction moved in an average transaction. Multiple transactions throughout
+  // the year result in higher cumulative velocity.
 
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
@@ -52,23 +79,53 @@ export class CoinGeckoAPICollector {
       const communityData = data.community_data || {};
       const developerData = data.developer_data || {};
 
-      // Community Size (social media followers + active addresses)
+      // Community Size - Composite scoring approach
+      // Addresses issue: Reward real activity over vanity metrics
+      // Weights: onChain (50%), GitHub (30%), Social (20%)
+      
+      // Social metrics (easier to game)
       const twitterFollowers = communityData.twitter_followers || 0;
       const redditSubscribers = communityData.reddit_subscribers || 0;
       const telegramUsers = communityData.telegram_channel_user_count || 0;
-      const communitySize = twitterFollowers + redditSubscribers + telegramUsers;
+      
+      // GitHub metrics (moderate difficulty to game)
+      const contributors = developerData.contributors || 0;
+      const stars = developerData.stars || 0;
+      const forks = developerData.forks || 0;
+      
+      // Calculate component scores
+      const socialMetrics = [twitterFollowers, redditSubscribers, telegramUsers].filter(v => v > 0);
+      const socialScore = socialMetrics.length > 0 
+        ? socialMetrics.reduce((sum, val) => sum + val, 0) / socialMetrics.length 
+        : 0;
+      
+      const githubScore = contributors > 0 
+        ? contributors + (stars / STARS_WEIGHT_DIVISOR) + (forks / FORKS_WEIGHT_DIVISOR)
+        : 0;
+      
+      // On-chain estimation (CoinGecko doesn't provide this directly)
+      const circulatingSupply = marketData.circulating_supply || 0;
+      const onChainScore = circulatingSupply > 0 
+        ? Math.min(circulatingSupply / CIRCULATING_SUPPLY_DIVISOR, MAX_ONCHAIN_SCORE)
+        : 0;
+      
+      // Get community weights from CFVCalculator (single source of truth)
+      const weights = CFVCalculator.getCommunityWeights();
+      
+      // Apply composite weights
+      const communitySize = Math.round(
+        onChainScore * weights.onChain +
+        githubScore * weights.github +
+        socialScore * weights.social
+      );
 
       // Transaction metrics (estimated from volume)
       const volume24h = marketData.total_volume?.usd || 0;
       const marketCap = marketData.market_cap?.usd || 0;
       const price = marketData.current_price?.usd || 0;
+      const circulatingSupply = marketData.circulating_supply || 0;
 
-      // Estimate annual transactions from 24h volume
-      // Assumption: average tx value is 0.1% of market cap
-      const estimatedAvgTxValue = marketCap > 0 ? marketCap * 0.001 : price * 100;
-      const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
-      const annualTxCount = Math.round(dailyTxCount * 365);
-      const annualTxValue = volume24h * 365;
+
 
       // Developer activity
       const developers = developerData.forks || 0;
@@ -129,15 +186,17 @@ export class CoinGeckoAPICollector {
 
     if (metrics.annualTxCount === 0) {
       warnings.push('No transaction data available');
+
     }
 
     if (metrics.developers === 0) {
       warnings.push('No developer data available');
     }
 
+
     return {
       isValid: errors.length === 0,
-      confidence: 'MEDIUM',
+      confidence: 'LOW',
       issues: [...errors, ...warnings]
     };
   }

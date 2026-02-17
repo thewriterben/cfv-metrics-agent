@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import { logger } from './utils/logger.js';
-import { performanceMonitor } from './utils/PerformanceMonitor.js';
-import { metricsCollector } from './utils/MetricsCollector.js';
-import { HealthChecker } from './utils/HealthChecker.js';
+import { logger } from '../../utils/logger.js';
+import { performanceMonitor } from '../../utils/PerformanceMonitor.js';
+import { metricsCollector } from '../../utils/MetricsCollector.js';
+import { HealthChecker } from '../../utils/HealthChecker.js';
 
 /**
  * Test script to validate monitoring infrastructure

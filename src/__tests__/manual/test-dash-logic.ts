@@ -3,8 +3,8 @@
  * Tests the logic without making real API calls
  */
 
-import { DashApiClient } from './collectors/DashApiClient.js';
-import { OLD_HARDCODED_DASH_VALUES, DASH_NETWORK_CONSTANTS } from './__tests__/helpers/dash-test-constants.js';
+import { DashApiClient } from '../../collectors/DashApiClient.js';
+import { OLD_HARDCODED_DASH_VALUES, DASH_NETWORK_CONSTANTS } from '../helpers/dash-test-constants.js';
 
 // Mock axios
 const mockAxios = {

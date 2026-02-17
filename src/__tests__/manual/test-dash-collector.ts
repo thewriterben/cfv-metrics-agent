@@ -3,8 +3,8 @@
  * This verifies that the collector now returns real API data instead of hardcoded values
  */
 
-import { DashApiClient } from './collectors/DashApiClient.js';
-import { OLD_HARDCODED_DASH_VALUES } from './__tests__/helpers/dash-test-constants.js';
+import { DashApiClient } from '../../collectors/DashApiClient.js';
+import { OLD_HARDCODED_DASH_VALUES } from '../helpers/dash-test-constants.js';
 
 async function testDashCollector() {
   console.log('Testing DASH Collector - Real API Integration\n');

@@ -19,16 +19,6 @@ export interface SchedulerConfig {
   };
   coingeckoApiKey?: string;
   intervalMinutes: number; // Collection interval in minutes
-  delayBetweenCoins: number; // Delay between coin collections in ms (deprecated, kept for backward compatibility)
-  concurrency?: {
-    [source: string]: number; // Allow any source key for flexibility with new data sources
-    '3xpl': number;
-    'coingecko': number;
-    'custom-dash': number;
-    'custom-nano': number;
-    'custom-near': number;
-    'custom-icp': number;
-  };
 }
 
 export class CollectionScheduler {
@@ -111,6 +101,83 @@ export class CollectionScheduler {
   }
 
   /**
+   * Process a single coin collection
+   */
+  private async collectCoin(coin: any): Promise<{ success: boolean; error?: string; duration: number }> {
+    const startTime = Date.now();
+    
+    try {
+      console.log(`\n📊 Collecting ${coin.name} (${coin.symbol})...`);
+      
+      const metrics = await this.collector.getTransactionMetrics(coin.symbol);
+      await this.db.saveMetrics(coin.symbol, metrics);
+      
+      const duration = Date.now() - startTime;
+      
+      console.log(`✅ Success in ${duration}ms`);
+      console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
+      console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
+      console.log(`   Confidence: ${metrics.confidence}`);
+      
+      return { success: true, duration };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`❌ Failed to collect ${coin.symbol}:`, error);
+      return { 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        duration 
+      };
+    }
+  }
+
+  /**
+   * Process coins with concurrency control
+   */
+  private async processCoinsConcurrently(coins: any[], maxConcurrency: number): Promise<{
+    successful: number;
+    failed: number;
+    lastError?: string;
+  }> {
+    let successful = 0;
+    let failed = 0;
+    let lastError: string | undefined;
+
+    // Process coins in batches with concurrency limit
+    const results: Promise<void>[] = [];
+    const executing = new Set<Promise<void>>();
+
+    for (const coin of coins) {
+      const promise = this.collectCoin(coin).then(result => {
+        if (result.success) {
+          successful++;
+        } else {
+          failed++;
+          lastError = result.error;
+        }
+      });
+
+      results.push(promise);
+      executing.add(promise);
+
+      // Clean up when promise completes
+      promise.finally(() => {
+        executing.delete(promise);
+      });
+
+      // If we've reached max concurrency, wait for one to finish
+      if (executing.size >= maxConcurrency) {
+        await Promise.race(executing);
+      }
+    }
+
+    // Wait for all remaining promises
+    await Promise.all(results);
+
+    return { successful, failed, lastError };
+  }
+
+  /**
    * Run a collection cycle
    */
   private async runCollection(): Promise<void> {
@@ -122,79 +189,6 @@ export class CollectionScheduler {
       const coins = await this.db.getActiveCoins();
       const runId = await this.db.startCollectionRun(coins.length);
 
-      let successful = 0;
-      let failed = 0;
-      let lastError: string | undefined;
-
-      // Group coins by data source
-      const coinsBySource: Record<string, Array<{ name: string; symbol: string; source: string }>> = {};
-      
-      for (const coin of coins) {
-        const source = this.collector.getDataSource(coin.symbol);
-        if (!coinsBySource[source]) {
-          coinsBySource[source] = [];
-        }
-        coinsBySource[source].push({ ...coin, source });
-      }
-
-      console.log('\n📊 Collection strategy:');
-      for (const [source, sourceCoins] of Object.entries(coinsBySource)) {
-        const concurrency = this.config.concurrency![source] || 1;
-        console.log(`   ${source}: ${sourceCoins.length} coins (concurrency: ${concurrency})`);
-      }
-      console.log('');
-
-      // Create task groups for concurrent execution
-      interface CoinInfo {
-        name: string;
-        symbol: string;
-        source: string;
-      }
-      
-      interface CollectionTaskResult {
-        coin: CoinInfo;
-        duration: number;
-        metrics: TransactionMetrics;
-      }
-      
-      const taskGroups: Record<string, Array<() => Promise<CollectionTaskResult>>> = {};
-      const concurrencyLimits: Record<string, number> = {};
-
-      for (const [source, sourceCoins] of Object.entries(coinsBySource)) {
-        taskGroups[source] = sourceCoins.map(coin => async () => {
-          console.log(`\n📊 Collecting ${coin.name} (${coin.symbol}) from ${coin.source}...`);
-          
-          const startTime = Date.now();
-          const metrics = await this.collector.getTransactionMetrics(coin.symbol);
-          const duration = Date.now() - startTime;
-
-          await this.db.saveMetrics(coin.symbol, metrics);
-          
-          console.log(`✅ ${coin.symbol} success in ${duration}ms`);
-          console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
-          console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
-          console.log(`   Confidence: ${metrics.confidence}`);
-
-          return { coin, duration, metrics };
-        });
-        concurrencyLimits[source] = this.config.concurrency![source] || 1;
-      }
-
-      // Execute all tasks with concurrency limits per source
-      const results = await executeBatchedConcurrent(taskGroups, concurrencyLimits);
-
-      // Process results
-      for (const sourceResults of Object.values(results)) {
-        for (const result of sourceResults) {
-          if (result.success) {
-            successful++;
-          } else {
-            failed++;
-            lastError = result.error.message;
-            console.error(`❌ Collection failed:`, result.error);
-          }
-        }
-      }
 
       // Update collection run
       const status = failed === 0 ? 'completed' : (successful > 0 ? 'completed' : 'failed');

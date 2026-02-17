@@ -54,6 +54,14 @@ export class APIServer {
 
   /**
    * Setup middleware
+   * 
+   * Middleware order is important:
+   * 1. CORS - must be first to handle preflight OPTIONS requests
+   * 2. Sentry - captures all requests and errors after CORS
+   * 3. Body parsers - parse request bodies
+   * 4. Request logging - log after body parsing
+   * 5. Performance monitoring - track timing after logging setup
+   * 6. Metrics tracking - count requests and connections
    */
   private setupMiddleware(): void {
     // CORS (must be first to handle preflight requests)

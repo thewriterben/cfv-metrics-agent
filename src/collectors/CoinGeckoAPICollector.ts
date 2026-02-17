@@ -15,6 +15,13 @@ import {
 export class CoinGeckoAPICollector {
   private apiKey: string;
   private baseUrl: string;
+  
+  // Transaction estimation constants
+  private static readonly MIN_AVG_TX_VALUE = 100; // Minimum average transaction value in USD
+  private static readonly MAX_AVG_TX_VALUE = 10000; // Maximum average transaction value in USD
+  private static readonly MARKET_CAP_RATIO = 0.0001; // 0.0001 of market cap (0.01%) used for avgTxValue estimation
+  private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
+  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
 
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
@@ -104,12 +111,33 @@ export class CoinGeckoAPICollector {
       const marketCap = marketData.market_cap?.usd || 0;
       const price = marketData.current_price?.usd || 0;
 
-      // Estimate annual transactions from 24h volume
-      // Assumption: average tx value is 0.1% of market cap
-      const estimatedAvgTxValue = marketCap > 0 ? marketCap * 0.001 : price * 100;
+      // HEURISTIC: Estimate annual transactions from 24h volume
+      // avgTxValue estimation is crude and varies significantly by coin:
+      // - For high-cap coins (BTC, ETH): transactions tend to be larger
+      // - For smaller coins: transactions tend to be smaller
+      // 
+      // Old approach: Used marketCap * 0.001 (0.1%) unbounded, causing issues:
+      //   - For BTC (~$1T market cap): avgTxValue = $1B (way too high)
+      //   - Led to massive underestimation of transaction counts
+      // 
+      // Improved heuristic: Use bounded calculation
+      // - Start with marketCap * 0.0001 (0.01%) as base estimate
+      // - Clamp result between $100 and $10,000 (realistic transaction values)
+      // - The bounds prevent extreme values from market cap variations
+      // - This is still an estimate - real blockchain data would be more accurate
+      const estimatedAvgTxValue = marketCap > 0 
+        ? Math.max(
+            CoinGeckoAPICollector.MIN_AVG_TX_VALUE, 
+            Math.min(
+              marketCap * CoinGeckoAPICollector.MARKET_CAP_RATIO, 
+              CoinGeckoAPICollector.MAX_AVG_TX_VALUE
+            )
+          )
+        : price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER; // Fallback when no market cap data
+      
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;
-      const annualTxCount = Math.round(dailyTxCount * 365);
-      const annualTxValue = volume24h * 365;
+      const annualTxCount = Math.round(dailyTxCount * CoinGeckoAPICollector.DAYS_PER_YEAR);
+      const annualTxValue = volume24h * CoinGeckoAPICollector.DAYS_PER_YEAR;
 
       // Developer activity
       const developers = developerData.forks || 0;
@@ -170,15 +198,19 @@ export class CoinGeckoAPICollector {
 
     if (metrics.annualTxCount === 0) {
       warnings.push('No transaction data available');
+    } else if (metrics.annualTxCount) {
+      warnings.push('Transaction count estimated using volume-based heuristic - real blockchain data recommended for accuracy');
     }
 
     if (metrics.developers === 0) {
       warnings.push('No developer data available');
     }
 
+    // Mark confidence as LOW due to transaction estimation heuristics
+    // Both estimated data and missing data warrant LOW confidence
     return {
       isValid: errors.length === 0,
-      confidence: 'MEDIUM',
+      confidence: 'LOW',
       issues: [...errors, ...warnings]
     };
   }

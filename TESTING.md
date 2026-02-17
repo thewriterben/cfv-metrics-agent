@@ -57,18 +57,36 @@ src/
         CacheManager.test.ts   # 17 tests - Redis caching
       validators/
         ValidationEngine.test.ts # 18 tests - Metric validation
+      collectors/
+        ThreeXplCollector.test.ts # Blockchain collector tests
     integration/               # Integration tests (slower, end-to-end)
       api.test.ts             # API endpoint tests
       database.test.ts        # Database integration tests
       collectors.test.ts      # External API collector tests
+    manual/                    # Manual test scripts (not in CI)
+      test-standalone.ts      # Standalone CFV test
+      test-all-coins.ts       # Test all supported coins
+      test-dash-collector.ts  # Test Dash collector
+      test-dash-logic.ts      # Test Dash logic
+      test-mcp-collector.ts   # Test MCP collector
+      test-mcp.ts             # Test MCP integration
+      test-monitoring.ts      # Test monitoring system
+      test-monitoring-endpoints.ts # Test monitoring endpoints
+      test-nano.ts            # Test Nano collector
+      test-phase1.ts          # Test phase 1 coins
+      test-quick.ts           # Quick integration test
+      test-threexpl-fallback.ts # Test 3xpl fallback
     fixtures/                  # Test data and mock objects
       metrics.ts              # Mock CFV metrics
       coins.ts                # Mock coin data
     helpers/                   # Test utilities
       mocks.ts                # Mock implementations (Redis, DB, Axios)
       index.ts                # Helper functions (waitFor, retry, etc.)
+      dash-test-constants.ts  # Dash test constants
     setup.ts                   # Global test setup
 ```
+
+**Note:** Manual test scripts in `src/__tests__/manual/` are excluded from production builds via `tsconfig.json`. They are designed for manual testing and debugging during development.
 
 ## Unit Tests
 
@@ -156,6 +174,60 @@ Integration tests verify that different components work together correctly. They
 - GitHub developer metrics
 - Rate limiting
 - Circuit breaker functionality
+
+## Manual Test Scripts
+
+Manual test scripts in `src/__tests__/manual/` are designed for manual testing and debugging during development. They are **not** part of the automated test suite and are **excluded from production builds**.
+
+### Running Manual Tests
+
+#### Standalone CFV Test
+```bash
+npm run test:standalone
+```
+Tests the complete CFV calculation workflow for a single coin (defaults to BTC).
+
+#### Run Any Manual Test
+```bash
+npm run test:manual -- src/__tests__/manual/test-dash-collector.ts
+```
+
+### Available Manual Tests
+
+| Script | Purpose |
+|--------|---------|
+| `test-standalone.ts` | Complete CFV calculation test without Copilot CLI |
+| `test-all-coins.ts` | Test transaction metrics for all supported coins |
+| `test-dash-collector.ts` | Verify Dash collector returns real API data |
+| `test-dash-logic.ts` | Test Dash-specific calculation logic |
+| `test-mcp-collector.ts` | Test CoinGecko MCP collector |
+| `test-mcp.ts` | Test MCP protocol integration |
+| `test-monitoring.ts` | Test monitoring utilities (logger, metrics, health) |
+| `test-monitoring-endpoints.ts` | Test monitoring API endpoints |
+| `test-nano.ts` | Test Nano blockchain collector |
+| `test-phase1.ts` | Test Phase 1 coin implementations |
+| `test-quick.ts` | Quick smoke test for basic functionality |
+| `test-threexpl-fallback.ts` | Test 3xpl collector with fallback chain |
+
+### Manual Test Requirements
+
+Manual tests require:
+- Environment variables (API keys) configured in `.env`
+- Network access to external APIs
+- Optional: Running services (Redis, MySQL) for some tests
+
+### Why Manual Tests?
+
+Manual tests are kept separate because they:
+- Require API keys that shouldn't be in CI/CD
+- Make actual network calls to external services
+- May have rate limits or costs associated
+- Are useful for debugging specific collectors
+- Help verify real-world behavior
+
+### Migration Note
+
+These test scripts were moved from `src/` to `src/__tests__/manual/` as part of the architecture cleanup. All import paths have been updated to use relative paths (`../../collectors/`, etc.).
 
 ## Test Fixtures
 

@@ -9,6 +9,17 @@ export class CoinGeckoAPICollector {
   private apiKey: string;
   private baseUrl: string;
 
+  // Transaction estimation constants
+  // Rationale: Different market cap tiers have different transaction patterns
+  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
+  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
+  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;      // 0.05% of market cap
+  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
+  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
+  private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
+  // Note: Small cap uses 1% (not 5% like Nano) because this represents per-transaction
+  // movement, not annual velocity. 1% per tx × many txs ≈ higher annual velocity.
+
   constructor(apiKey: string = '') {
     this.apiKey = apiKey;
     // Use demo API endpoint
@@ -66,24 +77,21 @@ export class CoinGeckoAPICollector {
 
       // Estimate annual transactions from 24h volume
       // Improved heuristic: Use a tiered approach based on market cap
-      // Large caps (>$10B): avg tx = 0.05% of market cap
-      // Mid caps ($1B-$10B): avg tx = 0.1% of market cap  
-      // Small caps (<$1B): avg tx = price * 10 (smaller transactions)
       let estimatedAvgTxValue: number;
-      if (marketCap > 10_000_000_000) {
-        // Large cap: assume larger average transactions
-        estimatedAvgTxValue = marketCap * 0.0005; // 0.05%
-      } else if (marketCap > 1_000_000_000) {
-        // Mid cap
-        estimatedAvgTxValue = marketCap * 0.001; // 0.1%
+      if (marketCap > CoinGeckoAPICollector.LARGE_CAP_THRESHOLD) {
+        // Large cap: assume larger average transactions (institutional, whales)
+        estimatedAvgTxValue = marketCap * CoinGeckoAPICollector.LARGE_CAP_AVG_TX_RATIO;
+      } else if (marketCap > CoinGeckoAPICollector.MID_CAP_THRESHOLD) {
+        // Mid cap: moderate transaction sizes
+        estimatedAvgTxValue = marketCap * CoinGeckoAPICollector.MID_CAP_AVG_TX_RATIO;
       } else if (marketCap > 0) {
-        // Small cap: use supply-based estimate
+        // Small cap: use supply-based estimate (more retail activity)
         estimatedAvgTxValue = (circulatingSupply > 0 && price > 0) 
-          ? (circulatingSupply * price * 0.01) 
-          : price * 10;
+          ? (circulatingSupply * price * CoinGeckoAPICollector.SMALL_CAP_SUPPLY_VELOCITY) 
+          : price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER;
       } else {
-        // Fallback
-        estimatedAvgTxValue = price * 100;
+        // Fallback: when no market cap or supply data available
+        estimatedAvgTxValue = price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER;
       }
       
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;

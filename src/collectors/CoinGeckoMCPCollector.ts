@@ -11,6 +11,14 @@ export class CoinGeckoMCPCollector {
   private transport: StdioClientTransport | null = null;
   private isConnected = false;
 
+  // Transaction estimation constants (same as CoinGeckoAPICollector for consistency)
+  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
+  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
+  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;      // 0.05% of market cap
+  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
+  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
+  private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
+
   constructor(private apiKey: string = '') {}
 
   /**
@@ -158,16 +166,16 @@ export class CoinGeckoMCPCollector {
     
     // If we have volume data, estimate from that
     if (volume24h > 0 && marketCap > 0) {
-      // Use tiered approach based on market cap
+      // Use tiered approach based on market cap (consistent with CoinGeckoAPICollector)
       let estimatedAvgTxValue: number;
-      if (marketCap > 10_000_000_000) {
-        estimatedAvgTxValue = marketCap * 0.0005; // 0.05% for large caps
-      } else if (marketCap > 1_000_000_000) {
-        estimatedAvgTxValue = marketCap * 0.001; // 0.1% for mid caps
+      if (marketCap > CoinGeckoMCPCollector.LARGE_CAP_THRESHOLD) {
+        estimatedAvgTxValue = marketCap * CoinGeckoMCPCollector.LARGE_CAP_AVG_TX_RATIO;
+      } else if (marketCap > CoinGeckoMCPCollector.MID_CAP_THRESHOLD) {
+        estimatedAvgTxValue = marketCap * CoinGeckoMCPCollector.MID_CAP_AVG_TX_RATIO;
       } else {
         estimatedAvgTxValue = (circulatingSupply > 0 && price > 0)
-          ? (circulatingSupply * price * 0.01)
-          : price * 10;
+          ? (circulatingSupply * price * CoinGeckoMCPCollector.SMALL_CAP_SUPPLY_VELOCITY)
+          : price * CoinGeckoMCPCollector.FALLBACK_TX_MULTIPLIER;
       }
       
       const dailyTxCount = estimatedAvgTxValue > 0 ? volume24h / estimatedAvgTxValue : 0;

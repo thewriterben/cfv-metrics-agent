@@ -1,3 +1,19 @@
+# ============================================================================
+# ⚠️  SECURITY WARNING - READ CAREFULLY
+# ============================================================================
+# This file is a TEMPLATE ONLY - it contains placeholder values for reference.
+# 
+# DO NOT commit real API keys, credentials, or secrets to this file!
+# 
+# IMPORTANT:
+# - Set all production values through the Railway dashboard UI
+# - Go to: Project → Service → Variables → Raw Editor
+# - Paste the variable definitions and replace placeholders with real values
+# - Never commit files containing real secrets to version control
+# 
+# For more information on security best practices, see CONTRIBUTING.md
+# ============================================================================
+
 # Railway Environment Variables Configuration
 # Copy these variables to your Railway project dashboard
 
@@ -18,8 +34,10 @@ NODE_ENV=production
 # DB_PASSWORD=${{MYSQL.MYSQLPASSWORD}}
 DB_NAME=cfv_metrics
 
-# CoinGecko API Key (VERIFIED ✅)
-COINGECKO_API_KEY=CG-2YSqU75XEvKC2oV38hnvQfGd
+# CoinGecko API Key
+# Get your API key from: https://www.coingecko.com/en/api/pricing
+# IMPORTANT: Never commit real API keys to version control
+COINGECKO_API_KEY=your_coingecko_api_key_here
 
 # Collection Settings
 COLLECTION_INTERVAL_MINUTES=60
@@ -38,8 +56,11 @@ CACHE_TTL_MEDIUM=3600
 CACHE_TTL_LONG=86400
 
 # Security
-ALLOWED_ORIGINS=*
-ENABLE_AUTH=false
+# IMPORTANT: Set to your actual frontend domain(s) in production
+# Example: https://your-frontend-domain.com or comma-separated list
+# Using * allows all origins and should only be used in development
+ALLOWED_ORIGINS=https://your-frontend-domain.com
+ENABLE_AUTH=true
 
 # Monitoring
 ENABLE_HEALTH_CHECK=true

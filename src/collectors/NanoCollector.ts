@@ -117,14 +117,16 @@ export class NanoCollector {
       const circulatingSupply = this.rawToNano(supply.available);
       const currentPrice = price?.quotes.USD.price || 0;
 
-
+      // Calculate days since Nano genesis
+      const daysLive = this.calculateDaysLive();
       const blocksPerDay = totalBlocks / daysLive;
 
       // Annual transaction count (blocks per day * 365)
       const annualTxCount = Math.round(blocksPerDay * NanoCollector.DAYS_PER_YEAR);
 
       // Estimate transaction value
-
+      // Using velocity heuristic: ~5% of supply moves annually
+      const annualSupplyMovement = circulatingSupply * NanoCollector.SUPPLY_VELOCITY;
       const annualTxValue = annualSupplyMovement * currentPrice;
 
       // Average transaction value
@@ -137,7 +139,10 @@ export class NanoCollector {
         annualTxCount,
         annualTxValue,
         avgTxValue,
-
+        confidence: 'MEDIUM',
+        sources: ['Nano RPC', 'NanoCrawler Price API'],
+        timestamp: new Date(),
+        issues
       };
     } catch (error) {
       throw new Error(`Failed to get Nano metrics: ${error instanceof Error ? error.message : String(error)}`);

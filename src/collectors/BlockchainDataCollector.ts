@@ -26,6 +26,8 @@ interface CollectorConfig {
 }
 
 export class BlockchainDataCollector {
+  private static readonly MAX_CACHE_SIZE = 100;
+  
   private coingeckoCollector: CoinGeckoAPICollector;
   private threexplCollector: ThreeXplCollector;
   private dashClient: DashApiClient;
@@ -189,10 +191,39 @@ export class BlockchainDataCollector {
    * Set in cache
    */
   private setInCache(coinSymbol: string, data: TransactionMetrics): void {
+    // Clean expired entries when cache is getting full
+    if (this.cache.size > BlockchainDataCollector.MAX_CACHE_SIZE / 2) {
+      this.cleanExpiredEntries();
+    }
+    
+    // Evict oldest entry if cache is still full after cleanup
+    if (this.cache.size >= BlockchainDataCollector.MAX_CACHE_SIZE) {
+      const oldestKey = this.cache.keys().next().value;
+      if (oldestKey !== undefined) {
+        this.cache.delete(oldestKey);
+      }
+    }
+    
     this.cache.set(coinSymbol, {
       data,
       expiry: Date.now() + this.cacheTTL
     });
+  }
+
+  /**
+   * Clean expired entries from cache
+   */
+  private cleanExpiredEntries(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+    
+    this.cache.forEach((value, key) => {
+      if (now > value.expiry) {
+        keysToDelete.push(key);
+      }
+    });
+    
+    keysToDelete.forEach(key => this.cache.delete(key));
   }
 
   /**
@@ -205,9 +236,10 @@ export class BlockchainDataCollector {
   /**
    * Get cache statistics
    */
-  getCacheStats(): { size: number; ttl: number; enabled: boolean } {
+  getCacheStats(): { size: number; maxSize: number; ttl: number; enabled: boolean } {
     return {
       size: this.cache.size,
+      maxSize: BlockchainDataCollector.MAX_CACHE_SIZE,
       ttl: this.cacheTTL,
       enabled: this.cacheEnabled
     };

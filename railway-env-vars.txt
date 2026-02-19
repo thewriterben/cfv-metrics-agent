@@ -56,11 +56,7 @@ CACHE_TTL_MEDIUM=3600
 CACHE_TTL_LONG=86400
 
 # Security
-# IMPORTANT: Set to your actual frontend domain(s) in production
-# Example: https://your-frontend-domain.com or comma-separated list
-# Using * allows all origins and should only be used in development
-ALLOWED_ORIGINS=https://your-frontend-domain.com
-ENABLE_AUTH=true
+
 
 # Monitoring
 ENABLE_HEALTH_CHECK=true

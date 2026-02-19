@@ -192,7 +192,7 @@ console.log(`Network Power Score: ${result.networkPowerScore.toFixed(2)}`);
 
 ```bash
 # Required
-COINGECKO_API_KEY=CG-2YSqU75XEvKC2oV38hnvQfGd
+COINGECKO_API_KEY=your_coingecko_api_key_here
 
 # Optional (for other collectors)
 ETHERSCAN_API_KEY=your_etherscan_key

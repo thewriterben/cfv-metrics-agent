@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import { TransactionMetrics } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Database Manager
@@ -77,7 +78,7 @@ export class DatabaseManager {
       connection.release();
       return true;
     } catch (error) {
-      console.error('Database connection test failed:', error);
+      logger.error('Database connection test failed', { error: error instanceof Error ? error.message : String(error) });
       return false;
     }
   }

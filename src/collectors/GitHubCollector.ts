@@ -12,6 +12,7 @@ import { RateLimiter } from '../utils/RateLimiter.js';
 import { CircuitBreaker } from '../utils/CircuitBreaker.js';
 import { RequestCoalescer } from '../utils/RequestCoalescer.js';
 import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
+import { logger } from '../utils/logger.js';
 
 export class GitHubCollector implements MetricCollector {
   name = 'GitHub';
@@ -178,7 +179,7 @@ export class GitHubCollector implements MetricCollector {
       commitActivity = await this.getCommitActivity(repoFullName);
     } catch (error) {
       // Commit activity endpoint may fail for large repos
-      console.warn(`Could not fetch commit activity for ${repoFullName}`);
+      logger.warn("Could not fetch commit activity", { repo: repoFullName });
     }
     
     // Estimate active developers based on recent activity

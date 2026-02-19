@@ -319,6 +319,19 @@ If you discover a security vulnerability:
 - Validate all user input
 - Keep dependencies updated
 - Follow OWASP security guidelines
+- **Pre-commit Check**: Before committing, always verify that no secrets are present in your changes:
+  ```bash
+  # Search for potential API keys in staged files
+  git diff --cached | grep -i "api.key\|secret\|password\|token"
+  
+  # Check for CoinGecko API keys specifically
+  git diff --cached | grep -E "CG-[A-Za-z0-9]+"
+  ```
+- **Template Files**: Files like `railway-env-vars.txt` and `.env.production.template` should only contain placeholder values (e.g., `your_api_key_here`)
+- **If You Accidentally Commit a Secret**:
+  1. Immediately rotate/revoke the exposed credential
+  2. Remove it from the repository history (contact maintainers for help)
+  3. Update all systems using the old credential
 
 ## Additional Resources
 

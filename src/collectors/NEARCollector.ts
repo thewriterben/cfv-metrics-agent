@@ -78,7 +78,8 @@ export class NEARCollector {
       const volume24h = parseFloat(stats.volume);
       const tps = stats.tps;
 
-
+      // Calculate days since NEAR genesis
+      const daysLive = this.calculateDaysLive();
       const txnsPerDay = totalTxns / daysLive;
       const annualTxCount = Math.round(txnsPerDay * NEARCollector.DAYS_PER_YEAR);
 

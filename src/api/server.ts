@@ -68,7 +68,30 @@ export class APIServer {
    */
   private setupMiddleware(): void {
     // CORS (must be first to handle preflight requests)
-    this.app.use(cors());
+    // Parse ALLOWED_ORIGINS environment variable
+    const allowedOrigins = process.env.ALLOWED_ORIGINS || '*';
+    const isProduction = process.env.NODE_ENV === 'production';
+    
+    // Warn if CORS is set to allow all origins in production
+    if (allowedOrigins === '*' && isProduction) {
+      logger.warn('CORS is configured to allow all origins (*) in production. This is a security risk. Set ALLOWED_ORIGINS to your frontend domain(s).');
+    }
+    
+    // Configure CORS origin
+    let corsOrigin: string | string[] | boolean;
+    if (allowedOrigins === '*') {
+      // Allow all origins (default to true for development, but already warned for production)
+      corsOrigin = true;
+    } else {
+      // Parse comma-separated list of origins
+      corsOrigin = allowedOrigins.split(',').map(origin => origin.trim());
+      logger.info(`CORS configured for origins: ${corsOrigin.join(', ')}`);
+    }
+    
+    this.app.use(cors({
+      origin: corsOrigin,
+      credentials: true
+    }));
     
     // Sentry request handler
     this.app.use(sentryRequestHandler());

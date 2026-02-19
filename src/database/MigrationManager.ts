@@ -2,6 +2,7 @@ import mysql from 'mysql2/promise';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { logger } from '../utils/logger.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -74,7 +75,7 @@ export class MigrationManager {
    */
   private getAvailableMigrations(): Array<{ version: number; name: string; filepath: string }> {
     if (!fs.existsSync(this.migrationsDir)) {
-      console.log(`⚠️  Migrations directory not found: ${this.migrationsDir}`);
+      logger.warn('Migrations directory not found', { directory: this.migrationsDir });
       return [];
     }
 
@@ -103,7 +104,7 @@ export class MigrationManager {
     connection: mysql.Connection,
     migration: { version: number; name: string; filepath: string }
   ): Promise<void> {
-    console.log(`  Applying migration ${migration.version}: ${migration.name}...`);
+    logger.info('Applying migration', { version: migration.version, name: migration.name });
     
     const sql = fs.readFileSync(migration.filepath, 'utf-8');
     
@@ -126,7 +127,7 @@ export class MigrationManager {
       [migration.version, migration.name]
     );
 
-    console.log(`  ✅ Migration ${migration.version} applied successfully`);
+    logger.info('Migration applied successfully', { version: migration.version });
   }
 
   /**
@@ -136,7 +137,7 @@ export class MigrationManager {
     let connection;
 
     try {
-      console.log('🔄 Starting database migration check...');
+      logger.info('Starting database migration check...');
 
       connection = await mysql.createConnection({
         host: this.config.host,
@@ -151,21 +152,24 @@ export class MigrationManager {
 
       // Get applied migrations
       const appliedMigrations = await this.getAppliedMigrations(connection);
-      console.log(`  Applied migrations: ${appliedMigrations.size > 0 ? Array.from(appliedMigrations).join(', ') : 'none'}`);
+      logger.info('Applied migrations', { 
+        count: appliedMigrations.size,
+        versions: appliedMigrations.size > 0 ? Array.from(appliedMigrations).join(', ') : 'none'
+      });
 
       // Get available migrations
       const availableMigrations = this.getAvailableMigrations();
-      console.log(`  Available migrations: ${availableMigrations.length}`);
+      logger.info('Available migrations', { count: availableMigrations.length });
 
       // Filter to pending migrations
       const pendingMigrations = availableMigrations.filter(m => !appliedMigrations.has(m.version));
 
       if (pendingMigrations.length === 0) {
-        console.log('✅ Database schema is up to date (no pending migrations)');
+        logger.info('Database schema is up to date (no pending migrations)');
         return;
       }
 
-      console.log(`  Pending migrations: ${pendingMigrations.length}`);
+      logger.info('Pending migrations', { count: pendingMigrations.length });
 
       // Apply each pending migration in a transaction
       for (const migration of pendingMigrations) {
@@ -179,10 +183,10 @@ export class MigrationManager {
         }
       }
 
-      console.log('✅ All migrations applied successfully');
+      logger.info('All migrations applied successfully');
 
     } catch (error) {
-      console.error('❌ Migration failed:', error);
+      logger.error('Migration failed', { error: error instanceof Error ? error.message : String(error) });
       throw error;
     } finally {
       if (connection) {

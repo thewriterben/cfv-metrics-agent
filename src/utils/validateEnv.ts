@@ -101,6 +101,8 @@ export function validateEnvironment(): ValidationResult {
   };
 }
 
+import { logger } from './logger.js';
+
 /**
  * Validate environment and print results
  * Throws an error if validation fails
@@ -110,34 +112,21 @@ export function validateAndReportEnvironment(): void {
   
   // Print warnings
   if (result.warnings.length > 0) {
-    console.log('\n⚠️  Environment Warnings:');
-    result.warnings.forEach(warning => {
-      console.log(`   - ${warning}`);
-    });
-    console.log('');
+    logger.warn('Environment warnings detected', { warnings: result.warnings });
   }
   
   // Print errors and exit if validation failed
   if (!result.valid) {
-    console.error('\n❌ Environment Validation Failed:\n');
-    result.errors.forEach(error => {
-      console.error(`   - ${error}`);
+    logger.error('Environment validation failed', { 
+      errors: result.errors,
+      requiredVariables: ['COINGECKO_API_KEY', 'DB_HOST', 'DB_USER', 'DB_PASSWORD', 'DB_NAME', 'API_PORT', 'NODE_ENV']
     });
-    console.error('\nPlease check your .env file or environment variables.\n');
-    console.error('Example .env file:');
-    console.error('  COINGECKO_API_KEY=your_api_key_here');
-    console.error('  DB_HOST=localhost');
-    console.error('  DB_USER=root');
-    console.error('  DB_PASSWORD=your_password');
-    console.error('  DB_NAME=cfv_metrics');
-    console.error('  API_PORT=3000');
-    console.error('  NODE_ENV=development\n');
     
     throw new Error('Environment validation failed. Please fix the errors above.');
   }
   
   // Success message
   if (result.warnings.length === 0) {
-    console.log('✅ Environment validation passed\n');
+    logger.info('Environment validation passed');
   }
 }

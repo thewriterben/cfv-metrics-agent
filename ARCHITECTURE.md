@@ -107,7 +107,7 @@ Data collectors implement `IDataCollector` interface:
 
 #### Blockchain Collectors
 - **BlockchainDataCollector** - Router for blockchain sources
-- **ThreeXplCollector** - 8 major chains (BTC, ETH, DASH, etc.)
+- **ThreeXplCollector** - 5 DGF coins with 3xpl support (BTC, ETH, DASH, DGB, XEC)
 - **DashApiClient** - Dash-specific metrics
 - **NanoCollector** - Nano blockchain
 - **NEARCollector** - NEAR Protocol

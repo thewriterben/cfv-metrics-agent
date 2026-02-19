@@ -1,3 +1,5 @@
+import { logger } from './logger.js';
+
 /**
  * Circuit Breaker Pattern Implementation
  * 
@@ -44,7 +46,7 @@ export class CircuitBreaker {
     // Check circuit state
     if (this.state === 'OPEN') {
       if (Date.now() >= this.nextAttempt) {
-        console.log('[CircuitBreaker] Entering HALF_OPEN state');
+        logger.info('CircuitBreaker: Entering HALF_OPEN state');
         this.state = 'HALF_OPEN';
       } else {
         throw new CircuitBreakerOpenError(
@@ -70,7 +72,7 @@ export class CircuitBreaker {
     this.successCount++;
     
     if (this.state === 'HALF_OPEN') {
-      console.log('[CircuitBreaker] Service recovered, closing circuit');
+      logger.info('CircuitBreaker: Service recovered, closing circuit');
       this.reset();
     } else if (this.state === 'CLOSED') {
       // Gradually decrease failure count on success
@@ -85,13 +87,13 @@ export class CircuitBreaker {
     this.failureCount++;
     this.lastFailureTime = Date.now();
 
-    console.warn(`[CircuitBreaker] Failure count: ${this.failureCount}/${this.threshold}`);
+    logger.warn("CircuitBreaker: Failure count", { failureCount: this.failureCount, threshold: this.threshold });
 
     if (this.state === 'HALF_OPEN') {
-      console.log('[CircuitBreaker] Service still failing, reopening circuit');
+      logger.info('CircuitBreaker: Service still failing, reopening circuit');
       this.open();
     } else if (this.failureCount >= this.threshold) {
-      console.log('[CircuitBreaker] Threshold reached, opening circuit');
+      logger.info('CircuitBreaker: Threshold reached, opening circuit');
       this.open();
     }
   }
@@ -102,7 +104,7 @@ export class CircuitBreaker {
   private open(): void {
     this.state = 'OPEN';
     this.nextAttempt = Date.now() + this.timeout;
-    console.log(`[CircuitBreaker] Circuit OPEN until ${new Date(this.nextAttempt).toISOString()}`);
+    logger.info("CircuitBreaker: Circuit OPEN", { until: new Date(this.nextAttempt).toISOString() });
   }
 
   /**

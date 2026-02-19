@@ -1,6 +1,7 @@
 import axios from 'axios';
 import { TransactionMetrics, DataSource, ConfidenceLevel } from '../types/index.js';
 import { CoinGeckoAPICollector } from './CoinGeckoAPICollector.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * 3xpl API Collector
@@ -194,7 +195,10 @@ export class ThreeXplCollector {
       }
     } catch (error) {
       // If CoinGecko fallback fails, log warning but continue with zeros
-      console.warn(`CoinGecko fallback failed for ${coinSymbol}:`, error instanceof Error ? error.message : String(error));
+      logger.warn('CoinGecko fallback failed', { 
+        coinSymbol,
+        error: error instanceof Error ? error.message : String(error) 
+      });
     }
 
     return {

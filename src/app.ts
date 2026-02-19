@@ -3,6 +3,7 @@ import { APIServer } from './api/server.js';
 import { CollectionScheduler } from './scheduler/CollectionScheduler.js';
 import { initializeDatabase } from './database/initDatabase.js';
 import { validateAndReportEnvironment } from './utils/validateEnv.js';
+import { logger } from './utils/logger.js';
 
 /**
  * CFV Metrics Agent - Main Application
@@ -35,7 +36,7 @@ function parseDatabaseConfig() {
         database: url.pathname.slice(1) || 'cfv_metrics' // Remove leading '/'
       };
     } catch (error) {
-      console.error('Failed to parse MYSQL_URL:', error);
+      logger.error('Failed to parse MYSQL_URL', { error: error instanceof Error ? error.message : String(error) });
     }
   }
   
@@ -58,13 +59,13 @@ const isProduction = process.env.NODE_ENV === 'production';
 if (coingeckoKey) {
   if (isProduction) {
     // Production: Don't show any part of the key
-    console.log('✅ CoinGecko API key loaded');
+    logger.info('CoinGecko API key loaded');
   } else {
     // Development: Show only first 4 characters
-    console.log(`✅ CoinGecko API key loaded: ${coingeckoKey.substring(0, 4)}...`);
+    logger.info('CoinGecko API key loaded', { keyPrefix: coingeckoKey.substring(0, 4) });
   }
 } else {
-  console.log('⚠️  CoinGecko API key not found in environment');
+  logger.warn('CoinGecko API key not found in environment');
 }
 
 const config = {
@@ -87,15 +88,15 @@ const scheduler = new CollectionScheduler(config.scheduler);
 
 // Graceful shutdown handler
 async function shutdown(signal: string) {
-  console.log(`\n${signal} received, shutting down gracefully...`);
+  logger.info('Shutting down gracefully', { signal });
   
   try {
     await scheduler.stop();
     await apiServer.stop();
-    console.log('Shutdown complete');
+    logger.info('Shutdown complete');
     process.exit(0);
   } catch (error) {
-    console.error('Error during shutdown:', error);
+    logger.error('Error during shutdown', { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   }
 }
@@ -107,56 +108,53 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 // Start application
 async function start() {
   try {
-    console.log('='.repeat(80));
-    console.log('CFV Metrics Agent - Starting...');
-    console.log('='.repeat(80));
-    console.log(`Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`API Port: ${config.api.port}`);
-    console.log(`Database: ${config.api.database.host}:${config.api.database.port}/${config.api.database.database}`);
-    console.log(`Collection Interval: ${config.scheduler.intervalMinutes} minutes`);
-    console.log(`Max Concurrency: ${config.scheduler.maxConcurrency} coins`);
-    console.log('='.repeat(80) + '\n');
+    logger.info('CFV Metrics Agent - Starting...', {
+      environment: process.env.NODE_ENV || 'development',
+      apiPort: config.api.port,
+      database: `${config.api.database.host}:${config.api.database.port}/${config.api.database.database}`,
+      collectionInterval: `${config.scheduler.intervalMinutes} minutes`,
+      maxConcurrency: `${config.scheduler.maxConcurrency} coins`
+    });
 
     // Initialize database schema (if needed)
-    console.log('Checking database schema...');
+    logger.info('Checking database schema...');
     try {
       await initializeDatabase(config.api.database);
-      console.log('✅ Database initialized successfully');
+      logger.info('Database initialized successfully');
     } catch (error) {
       const err = error as Error;
-      console.error('❌ Database initialization failed:', err.message);
-      console.error('Database config:', {
-        host: config.api.database.host,
-        port: config.api.database.port,
-        database: config.api.database.database,
-        user: config.api.database.user
+      logger.error('Database initialization failed', { 
+        error: err.message,
+        config: {
+          host: config.api.database.host,
+          port: config.api.database.port,
+          database: config.api.database.database,
+          user: config.api.database.user
+        }
       });
       
       // Don't exit - allow app to continue if database is optional
       // or already initialized from a previous run
-      console.log('⚠️  Continuing without fresh database initialization...');
+      logger.warn('Continuing without fresh database initialization...');
     }
-    console.log('');
 
     // Start API server
-    console.log('Starting API server...');
+    logger.info('Starting API server...');
     await apiServer.start();
-    console.log('✅ API server started\n');
+    logger.info('API server started');
 
     // Start scheduler
-    console.log('Starting collection scheduler...');
+    logger.info('Starting collection scheduler...');
     await scheduler.start();
-    console.log('✅ Scheduler started\n');
+    logger.info('Scheduler started');
 
-    console.log('='.repeat(80));
-    console.log('CFV Metrics Agent - Running');
-    console.log('='.repeat(80));
-    console.log(`API: http://localhost:${config.api.port}`);
-    console.log(`Health: http://localhost:${config.api.port}/health`);
-    console.log(`Metrics: http://localhost:${config.api.port}/api/metrics`);
-    console.log('='.repeat(80) + '\n');
+    logger.info('CFV Metrics Agent - Running', {
+      api: `http://localhost:${config.api.port}`,
+      health: `http://localhost:${config.api.port}/health`,
+      metrics: `http://localhost:${config.api.port}/api/metrics`
+    });
   } catch (error) {
-    console.error('Failed to start application:', error);
+    logger.error('Failed to start application', { error: error instanceof Error ? error.message : String(error) });
     process.exit(1);
   }
 }

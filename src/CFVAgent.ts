@@ -45,7 +45,12 @@ export class CFVAgent {
     // Initialize collectors
     this.collectors = [
       new CoinGeckoCollector(this.config.coinGeckoApiKey),
-      new EtherscanCollector(this.config.etherscanApiKey),
+      new EtherscanCollector(
+        this.config.etherscanApiKey,
+        undefined,
+        undefined,
+        this.config.coinGeckoApiKey
+      ),
       new GitHubCollector(this.config.githubToken),
     ];
     

@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import { MigrationManager } from './MigrationManager.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Initialize database schema safely using migrations
@@ -20,7 +21,7 @@ export async function initializeDatabase(config: {
   let connection;
   
   try {
-    console.log('Initializing database schema...');
+    logger.info('Initializing database schema...');
     
     // Run migrations (safe, idempotent, preserves data)
     const migrationManager = new MigrationManager(config);
@@ -60,15 +61,15 @@ export async function initializeDatabase(config: {
     `;
 
     await connection.query(insertCoins);
-    console.log('✅ Initial coin data inserted/updated (12 DGF coins)');
+    logger.info('Initial coin data inserted/updated', { count: 12, type: 'DGF coins' });
 
     // Verify
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM coins');
     const count = (rows as any)[0].count;
-    console.log(`✅ Database initialized successfully (${count} coins)`);
+    logger.info('Database initialized successfully', { totalCoins: count });
 
   } catch (error) {
-    console.error('❌ Database initialization failed:', error);
+    logger.error('Database initialization failed', { error: error instanceof Error ? error.message : String(error) });
     throw error;
   } finally {
     if (connection) {

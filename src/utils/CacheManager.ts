@@ -1,5 +1,6 @@
 import Redis from 'ioredis';
 import type { MetricResult, CFVResult } from '../types';
+import { logger } from './logger.js';
 
 /**
  * CacheManager with Redis and graceful degradation to memory-only mode
@@ -49,13 +50,13 @@ export class CacheManager {
       this.redis = new Redis(this.redisUrl, {
         retryStrategy: (times) => {
           if (times > this.maxConnectionAttempts) {
-            console.warn('⚠️  Redis: Max connection attempts reached, falling back to memory-only cache');
+            logger.warn('Redis: Max connection attempts reached, falling back to memory-only cache');
             this.isRedisAvailable = false;
             return null; // Stop retrying
           }
           const delay = Math.min(times * 1000, 5000);
           if (!isProduction) {
-            console.log(`Redis: Retry attempt ${times} in ${delay}ms...`);
+            logger.info('Redis: Retry attempt', { attempt: times, delay });
           }
           return delay;
         },
@@ -67,7 +68,7 @@ export class CacheManager {
       // Handle successful connection
       this.redis.on('connect', () => {
         if (!isProduction) {
-          console.log('✅ Redis: Connected successfully');
+          logger.info('Redis: Connected successfully');
         }
         this.isRedisAvailable = true;
         this.connectionAttempts = 0;
@@ -82,20 +83,20 @@ export class CacheManager {
       this.redis.on('error', (error) => {
         this.connectionAttempts++;
         if (!isProduction || this.connectionAttempts <= 1) {
-          console.warn('⚠️  Redis connection error:', error.message);
+          logger.warn('Redis connection error', { error: error.message });
         }
         this.isRedisAvailable = false;
         
         // After max attempts, fall back to memory cache
         if (this.connectionAttempts >= this.maxConnectionAttempts) {
-          console.warn('⚠️  Redis: Degrading to memory-only cache mode');
+          logger.warn('Redis: Degrading to memory-only cache mode');
         }
       });
       
       // Handle disconnection
       this.redis.on('close', () => {
         if (!isProduction) {
-          console.log('Redis: Connection closed');
+          logger.info('Redis: Connection closed');
         }
         this.isRedisAvailable = false;
       });
@@ -103,12 +104,12 @@ export class CacheManager {
       // Handle reconnection
       this.redis.on('reconnecting', () => {
         if (!isProduction) {
-          console.log('Redis: Attempting to reconnect...');
+          logger.info('Redis: Attempting to reconnect...');
         }
       });
       
     } catch (error) {
-      console.warn('⚠️  Redis initialization failed, using memory-only cache:', (error as Error).message);
+      logger.warn('Redis initialization failed, using memory-only cache', { error: (error as Error).message });
       this.isRedisAvailable = false;
       this.redis = null;
     }
@@ -192,7 +193,7 @@ export class CacheManager {
         return parsed as MetricResult;
       }
     } catch (error) {
-      console.warn(`Cache warning (getMetric): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "getMetric", error: (error as Error).message });
     }
     
     // Fall back to memory cache
@@ -226,7 +227,7 @@ export class CacheManager {
         return;
       }
     } catch (error) {
-      console.warn(`Cache warning (setMetric): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "setMetric", error: (error as Error).message });
     }
     
     // Fall back to memory cache
@@ -256,7 +257,7 @@ export class CacheManager {
         return parsed as CFVResult;
       }
     } catch (error) {
-      console.warn(`Cache warning (getCFVResult): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "getCFVResult", error: (error as Error).message });
     }
     
     // Fall back to memory cache
@@ -287,7 +288,7 @@ export class CacheManager {
         return;
       }
     } catch (error) {
-      console.warn(`Cache warning (setCFVResult): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "setCFVResult", error: (error as Error).message });
     }
     
     // Fall back to memory cache
@@ -313,7 +314,7 @@ export class CacheManager {
         return parsed;
       }
     } catch (error) {
-      console.warn(`Cache warning (getCollectorHealth): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "getCollectorHealth", error: (error as Error).message });
     }
     
     // Fall back to memory cache
@@ -341,7 +342,7 @@ export class CacheManager {
         return;
       }
     } catch (error) {
-      console.warn(`Cache warning (setCollectorHealth): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "setCollectorHealth", error: (error as Error).message });
     }
     
     // Fall back to memory cache
@@ -365,7 +366,7 @@ export class CacheManager {
         return;
       }
     } catch (error) {
-      console.warn(`Cache warning (invalidateCoin): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "invalidateCoin", error: (error as Error).message });
     }
     
     // Fall back to memory cache - remove matching keys
@@ -413,7 +414,7 @@ export class CacheManager {
         };
       }
     } catch (error) {
-      console.warn(`Cache warning (getStats): ${(error as Error).message}`);
+      logger.warn("Cache warning", { operation: "getStats", error: (error as Error).message });
     }
     
     // Fall back to memory cache stats with efficient size estimation
@@ -453,7 +454,7 @@ export class CacheManager {
       try {
         await this.redis.quit();
       } catch (error) {
-        console.warn('Error closing Redis connection:', (error as Error).message);
+        logger.warn('Error closing Redis connection', { error: (error as Error).message });
       }
     }
     

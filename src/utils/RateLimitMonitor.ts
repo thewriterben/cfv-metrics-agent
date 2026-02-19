@@ -5,6 +5,8 @@
  * Provides real-time monitoring and alerting capabilities.
  */
 
+import { logger } from './logger.js';
+
 export type MonitoredService = 'coingecko' | 'etherscan' | 'github';
 
 export interface RateLimitMetrics {
@@ -87,7 +89,7 @@ export class RateLimitMonitor {
         metric.windowStart = now;
         
         if (oldUsed > 0) {
-          console.log(`[RateLimitMonitor] Reset ${service} window (was ${oldUsed}/${metric.limit})`);
+          logger.info('Rate limit window reset', { service, previousUsage: `${oldUsed}/${metric.limit}` });
         }
       }
     }
@@ -100,7 +102,7 @@ export class RateLimitMonitor {
     const metric = this.metrics.get(service);
     
     if (!metric) {
-      console.warn(`[RateLimitMonitor] Unknown service: ${service}`);
+      logger.warn('Unknown service for rate limit monitoring', { service });
       return;
     }
 
@@ -109,9 +111,12 @@ export class RateLimitMonitor {
     // Check if approaching limit
     const percentage = (metric.used / metric.limit) * 100;
     if (percentage >= this.WARNING_THRESHOLD * 100) {
-      console.warn(
-        `[RateLimitMonitor] WARNING: ${service} at ${percentage.toFixed(1)}% of rate limit (${metric.used}/${metric.limit})`
-      );
+      logger.warn('Rate limit warning', {
+        service,
+        percentage,
+        used: metric.used,
+        limit: metric.limit
+      });
     }
   }
 
@@ -195,7 +200,7 @@ export class RateLimitMonitor {
 
     metric.used = 0;
     metric.windowStart = Date.now();
-    console.log(`[RateLimitMonitor] Manually reset ${service} window`);
+    logger.info('Rate limit window manually reset', { service });
   }
 
   /**
@@ -210,7 +215,7 @@ export class RateLimitMonitor {
 
     const oldLimit = metric.limit;
     metric.limit = newLimit;
-    console.log(`[RateLimitMonitor] Updated ${service} limit from ${oldLimit} to ${newLimit}`);
+    logger.info('Rate limit updated', { service, oldLimit, newLimit });
   }
 
   /**
@@ -250,6 +255,6 @@ export class RateLimitMonitor {
       this.resetInterval = null;
     }
     this.metrics.clear();
-    console.log('[RateLimitMonitor] Disposed');
+    logger.info('RateLimitMonitor disposed');
   }
 }

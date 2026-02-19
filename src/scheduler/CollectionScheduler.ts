@@ -2,6 +2,7 @@ import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
 import { executeBatchedConcurrent } from '../utils/concurrency.js';
 import type { TransactionMetrics } from '../types/index.js';
+import { logger } from '../utils/logger.js';
 
 /**
  * Collection Scheduler
@@ -53,7 +54,7 @@ export class CollectionScheduler {
    */
   async start(): Promise<void> {
     if (this.isRunning) {
-      console.log('Scheduler is already running');
+      logger.info('Scheduler is already running');
       return;
     }
 
@@ -63,7 +64,7 @@ export class CollectionScheduler {
       throw new Error('Database connection failed');
     }
 
-    console.log(`Starting collection scheduler (interval: ${this.config.intervalMinutes} minutes)`);
+    logger.info('Starting collection scheduler', { intervalMinutes: this.config.intervalMinutes });
     this.isRunning = true;
 
     // Run immediately on start
@@ -75,7 +76,7 @@ export class CollectionScheduler {
       await this.runCollection();
     }, intervalMs);
 
-    console.log('Scheduler started successfully');
+    logger.info('Scheduler started successfully');
   }
 
   /**
@@ -83,11 +84,11 @@ export class CollectionScheduler {
    */
   async stop(): Promise<void> {
     if (!this.isRunning) {
-      console.log('Scheduler is not running');
+      logger.info('Scheduler is not running');
       return;
     }
 
-    console.log('Stopping collection scheduler...');
+    logger.info('Stopping collection scheduler...');
     
     if (this.intervalId) {
       clearInterval(this.intervalId);
@@ -97,7 +98,7 @@ export class CollectionScheduler {
     this.isRunning = false;
     await this.db.close();
     
-    console.log('Scheduler stopped');
+    logger.info('Scheduler stopped');
   }
 
   /**
@@ -107,22 +108,28 @@ export class CollectionScheduler {
     const startTime = Date.now();
     
     try {
-      console.log(`\n📊 Collecting ${coin.name} (${coin.symbol})...`);
+      logger.info('Collecting coin metrics', { coin: coin.name, symbol: coin.symbol });
       
       const metrics = await this.collector.getTransactionMetrics(coin.symbol);
       await this.db.saveMetrics(coin.symbol, metrics);
       
       const duration = Date.now() - startTime;
       
-      console.log(`✅ Success in ${duration}ms`);
-      console.log(`   Annual TX Count: ${metrics.annualTxCount.toLocaleString()}`);
-      console.log(`   Annual TX Value: $${metrics.annualTxValue.toLocaleString()}`);
-      console.log(`   Confidence: ${metrics.confidence}`);
+      logger.info('Collection successful', {
+        symbol: coin.symbol,
+        duration,
+        annualTxCount: metrics.annualTxCount,
+        annualTxValue: metrics.annualTxValue,
+        confidence: metrics.confidence
+      });
       
       return { success: true, duration };
     } catch (error) {
       const duration = Date.now() - startTime;
-      console.error(`❌ Failed to collect ${coin.symbol}:`, error);
+      logger.error('Failed to collect coin metrics', { 
+        symbol: coin.symbol, 
+        error: error instanceof Error ? error.message : String(error) 
+      });
       return { 
         success: false, 
         error: error instanceof Error ? error.message : 'Unknown error',
@@ -181,9 +188,7 @@ export class CollectionScheduler {
    * Run a collection cycle
    */
   private async runCollection(): Promise<void> {
-    console.log('\n' + '='.repeat(80));
-    console.log(`Starting collection run at ${new Date().toISOString()}`);
-    console.log('='.repeat(80));
+    logger.info('Starting collection run', { timestamp: new Date().toISOString() });
 
     try {
       const coins = await this.db.getActiveCoins();
@@ -194,14 +199,14 @@ export class CollectionScheduler {
       const status = failed === 0 ? 'completed' : (successful > 0 ? 'completed' : 'failed');
       await this.db.updateCollectionRun(runId, status, successful, failed, lastError);
 
-      console.log('\n' + '='.repeat(80));
-      console.log('Collection run completed');
-      console.log(`✅ Successful: ${successful}/${coins.length}`);
-      console.log(`❌ Failed: ${failed}/${coins.length}`);
-      console.log(`Success Rate: ${((successful / coins.length) * 100).toFixed(1)}%`);
-      console.log('='.repeat(80) + '\n');
+      logger.info('Collection run completed', {
+        successful,
+        failed,
+        total: coins.length,
+        successRate: ((successful / coins.length) * 100).toFixed(1)
+      });
     } catch (error) {
-      console.error('Collection run failed:', error);
+      logger.error('Collection run failed', { error: error instanceof Error ? error.message : String(error) });
     }
   }
 

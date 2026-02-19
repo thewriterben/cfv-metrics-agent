@@ -17,13 +17,6 @@ export class CoinGeckoAPICollector {
   private baseUrl: string;
   
   // Transaction estimation constants
-  private static readonly MIN_AVG_TX_VALUE = 100; // Minimum average transaction value in USD
-  private static readonly MAX_AVG_TX_VALUE = 10000; // Maximum average transaction value in USD
-  private static readonly MARKET_CAP_RATIO = 0.0001; // 0.0001 of market cap (0.01%) used for avgTxValue estimation
-  private static readonly FALLBACK_TX_MULTIPLIER = 100; // Fallback: assume avg tx = 100x coin price
-  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
-
-  // Transaction estimation constants
   // Rationale: Different market cap tiers have different transaction patterns
   private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
   private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
@@ -32,6 +25,9 @@ export class CoinGeckoAPICollector {
   private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
   private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
   private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
+  private static readonly MAX_AVG_TX_VALUE = 10000;             // Maximum average transaction value in USD
+  private static readonly MARKET_CAP_RATIO = 0.0001;            // 0.0001 of market cap (0.01%) used for avgTxValue estimation
+  private static readonly DAYS_PER_YEAR = 365;                  // Days in a year for annualization
   // Note: Small cap uses 1% (not 5% like Nano's annual velocity) because this represents
   // the supply fraction moved in an average transaction. Multiple transactions throughout
   // the year result in higher cumulative velocity.
@@ -123,7 +119,11 @@ export class CoinGeckoAPICollector {
       const volume24h = marketData.total_volume?.usd || 0;
       const marketCap = marketData.market_cap?.usd || 0;
       const price = marketData.current_price?.usd || 0;
-      const circulatingSupply = marketData.circulating_supply || 0;
+
+      // Estimate transaction metrics from volume
+      const annualTxValue = volume24h * CoinGeckoAPICollector.DAYS_PER_YEAR;
+      const avgTxValue = this.estimateAvgTxValue(marketCap, price, circulatingSupply);
+      const annualTxCount = avgTxValue > 0 ? Math.round(annualTxValue / avgTxValue) : 0;
 
 
 
@@ -145,6 +145,37 @@ export class CoinGeckoAPICollector {
         throw new Error(`CoinGecko API error: ${error.response?.status} ${error.response?.statusText || error.message}`);
       }
       throw error;
+    }
+  }
+
+  /**
+   * Estimate average transaction value based on market cap tier
+   */
+  private estimateAvgTxValue(marketCap: number, price: number, circulatingSupply: number): number {
+    if (marketCap >= CoinGeckoAPICollector.LARGE_CAP_THRESHOLD) {
+      // Large cap: use market cap ratio
+      return Math.max(
+        marketCap * CoinGeckoAPICollector.LARGE_CAP_AVG_TX_RATIO,
+        CoinGeckoAPICollector.MIN_AVG_TX_VALUE
+      );
+    } else if (marketCap >= CoinGeckoAPICollector.MID_CAP_THRESHOLD) {
+      // Mid cap: use market cap ratio
+      return Math.max(
+        marketCap * CoinGeckoAPICollector.MID_CAP_AVG_TX_RATIO,
+        CoinGeckoAPICollector.MIN_AVG_TX_VALUE
+      );
+    } else if (circulatingSupply > 0) {
+      // Small cap: use supply velocity
+      return Math.max(
+        circulatingSupply * CoinGeckoAPICollector.SMALL_CAP_SUPPLY_VELOCITY * price,
+        CoinGeckoAPICollector.MIN_AVG_TX_VALUE
+      );
+    } else {
+      // Fallback: price multiplier
+      return Math.max(
+        price * CoinGeckoAPICollector.FALLBACK_TX_MULTIPLIER,
+        CoinGeckoAPICollector.MIN_AVG_TX_VALUE
+      );
     }
   }
 

@@ -1,4 +1,5 @@
 import Bottleneck from 'bottleneck';
+import { logger } from './logger.js';
 
 /**
  * Service-specific rate limiter using bottleneck library
@@ -69,18 +70,18 @@ export class RateLimiter {
 
     // Add event listeners for monitoring
     limiter.on('failed', (error, jobInfo) => {
-      console.warn(`[RateLimiter] ${service} job failed:`, error.message);
+      logger.warn("RateLimiter: Job failed", { service, error: error.message });
       
       // Retry logic for 429 errors (Too Many Requests)
       if (error.message.includes('429') || error.message.includes('rate limit')) {
         const retryAfter = 5000; // 5 seconds
-        console.log(`[RateLimiter] Retrying ${service} after ${retryAfter}ms`);
+        logger.info("RateLimiter: Retrying", { service, retryAfter });
         return retryAfter;
       }
     });
 
     limiter.on('retry', (error, jobInfo) => {
-      console.log(`[RateLimiter] Retrying ${service} job`);
+      logger.info("RateLimiter: Retrying job", { service });
     });
 
     this.limiters.set(service, limiter);

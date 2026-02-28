@@ -12,6 +12,7 @@ import { CircuitBreaker } from '../utils/CircuitBreaker.js';
 import { RequestCoalescer } from '../utils/RequestCoalescer.js';
 import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
 import { CoinGeckoAPICollector } from './CoinGeckoAPICollector.js';
+import { logger } from '../utils/logger.js';
 
 export class EtherscanCollector implements MetricCollector {
   name = 'Etherscan';
@@ -155,7 +156,7 @@ export class EtherscanCollector implements MetricCollector {
         }
       } catch (error) {
         // If CoinGecko fallback fails, log warning but continue with zero
-        console.warn('CoinGecko fallback failed for ETH:', error instanceof Error ? error.message : String(error));
+        logger.warn("CoinGecko fallback failed for ETH", { error: error instanceof Error ? error.message : String(error) });
       }
       
       // Determine confidence level

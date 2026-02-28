@@ -78,6 +78,7 @@ const config = {
     database: dbConfig,
     coingeckoApiKey: coingeckoKey,
     intervalMinutes: parseInt(process.env.COLLECTION_INTERVAL_MINUTES || '60'),
+    maxConcurrency: parseInt(process.env.MAX_CONCURRENCY || '5'),
 
   }
 };

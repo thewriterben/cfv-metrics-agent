@@ -1,4 +1,5 @@
 import { CopilotClient } from '@github/copilot-sdk';
+import { logger } from './utils/logger.js';
 import { CoinGeckoCollector } from './collectors/CoinGeckoCollector';
 import { EtherscanCollector } from './collectors/EtherscanCollector';
 import { GitHubCollector } from './collectors/GitHubCollector';
@@ -71,14 +72,14 @@ export class CFVAgent {
    * Calculate CFV for a cryptocurrency
    */
   async calculateCFV(coinSymbol: string): Promise<CFVResult> {
-    console.log(`\n🔍 Calculating CFV for ${coinSymbol.toUpperCase()}...`);
+    logger.info(`Calculating CFV for ${coinSymbol.toUpperCase()}`);
     
     // Check cache first
     const cachedResult = await this.cache.getCFVResult(coinSymbol);
     if (cachedResult) {
       const age = Date.now() - cachedResult.timestamp.getTime();
       if (age < this.config.cacheTTL.medium * 1000) {
-        console.log(`✅ Using cached result (${Math.round(age / 1000)}s old)`);
+        logger.info(`Using cached result`, { ageSeconds: Math.round(age / 1000) });
         return cachedResult;
       }
     }
@@ -112,7 +113,7 @@ export class CFVAgent {
     // Cache result
     await this.cache.setCFVResult(result, this.config.cacheTTL.medium);
     
-    console.log(`✅ CFV calculation complete!`);
+    logger.info(`CFV calculation complete`);
     
     return result;
   }
@@ -139,7 +140,7 @@ export class CFVAgent {
           const result = await this.collectMetric(coinSymbol, metric);
           results[metric as keyof CFVMetrics] = result;
         } catch (error) {
-          console.error(`❌ Failed to collect ${metric}:`, error);
+          logger.error(`Failed to collect ${metric}`, { error });
           // Use fallback value
           results[metric as keyof CFVMetrics] = {
             value: 0,
@@ -159,14 +160,14 @@ export class CFVAgent {
    * Collect a specific metric from multiple sources
    */
   private async collectMetric(coinSymbol: string, metric: MetricType): Promise<MetricResult> {
-    console.log(`  📊 Collecting ${metric}...`);
+    logger.info(`Collecting ${metric}`);
     
     // Check cache first
     const cached = await this.cache.getMetric(coinSymbol, metric);
     if (cached) {
       const age = Date.now() - cached.timestamp.getTime();
       if (age < this.getTTLForMetric(metric) * 1000) {
-        console.log(`    ✓ ${metric}: ${cached.value} (cached, ${cached.confidence})`);
+        logger.info(`  ✓ ${metric}: ${cached.value} (cached, ${cached.confidence})`);
         return cached;
       }
     }
@@ -187,10 +188,10 @@ export class CFVAgent {
         );
         
         results.push(result);
-        console.log(`    ✓ ${collector.name}: ${result.value} (${result.confidence})`);
+        logger.info(`  ✓ ${collector.name}: ${result.value} (${result.confidence})`);
       } catch (error) {
         // Collector failed, continue with others
-        console.log(`    ✗ ${collector.name}: ${error}`);
+        logger.warn(`  ✗ ${collector.name}: ${error}`);
       }
     }
     
@@ -218,7 +219,7 @@ export class CFVAgent {
     const ttl = this.getTTLForMetric(metric);
     await this.cache.setMetric(coinSymbol, metric, finalResult, this.getTTLCategory(ttl));
     
-    console.log(`    → Final: ${finalResult.value} (${finalResult.confidence})`);
+    logger.info(`  → Final: ${finalResult.value} (${finalResult.confidence})`);
     
     return finalResult;
   }

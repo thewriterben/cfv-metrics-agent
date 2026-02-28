@@ -10,38 +10,25 @@ import {
 } from '../utils/CommunityConstants.js';
 import { logger } from '../utils/logger.js';
 
-/**
- * CoinGecko MCP Collector
- * Uses the official CoinGecko MCP server for reliable, structured data access
- */
 export class CoinGeckoMCPCollector {
   private client: Client | null = null;
   private transport: StdioClientTransport | null = null;
   private isConnected = false;
-  
-  // Transaction estimation constants
-  private static readonly DAYS_PER_YEAR = 365; // Days in a year for annualization
-  private static readonly SUPPLY_MULTIPLIER = 2; // Placeholder: assume 2x supply as annual transactions
 
-  // Transaction estimation constants (same as CoinGeckoAPICollector for consistency)
-  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000; // $10B
-  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;    // $1B
-  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;      // 0.05% of market cap
-  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;         // 0.1% of market cap
-  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;     // 1% of supply moves in avg tx
-  private static readonly FALLBACK_TX_MULTIPLIER = 100;         // price × 100 when no other data available
-  private static readonly MIN_AVG_TX_VALUE = 1;                 // Minimum $1 to prevent unrealistic estimates
+  private static readonly DAYS_PER_YEAR = 365;
+  private static readonly LARGE_CAP_THRESHOLD = 10_000_000_000;
+  private static readonly MID_CAP_THRESHOLD = 1_000_000_000;
+  private static readonly LARGE_CAP_AVG_TX_RATIO = 0.0005;
+  private static readonly MID_CAP_AVG_TX_RATIO = 0.001;
+  private static readonly SMALL_CAP_SUPPLY_VELOCITY = 0.01;
+  private static readonly FALLBACK_TX_MULTIPLIER = 100;
+  private static readonly MIN_AVG_TX_VALUE = 1;
 
   constructor(private apiKey: string = '') {}
 
-  /**
-   * Connect to the CoinGecko MCP server
-   */
   async connect(): Promise<void> {
     if (this.isConnected) return;
-
     try {
-      // Create transport
       this.transport = new StdioClientTransport({
         command: 'npx',
         args: ['-y', '@coingecko/coingecko-mcp'],
@@ -50,16 +37,7 @@ export class CoinGeckoMCPCollector {
           COINGECKO_ENVIRONMENT: 'demo'
         }
       });
-
-      // Create client
-      this.client = new Client({
-        name: 'cfv-metrics-agent',
-        version: '1.0.0'
-      }, {
-        capabilities: {}
-      });
-
-      // Connect
+      this.client = new Client({ name: 'cfv-metrics-agent', version: '1.0.0' }, { capabilities: {} });
       await this.client.connect(this.transport);
       this.isConnected = true;
       logger.info('Connected to CoinGecko MCP server');
@@ -69,9 +47,6 @@ export class CoinGeckoMCPCollector {
     }
   }
 
-  /**
-   * Disconnect from the MCP server
-   */
   async disconnect(): Promise<void> {
     if (this.client && this.isConnected) {
       await this.client.close();
@@ -80,23 +55,15 @@ export class CoinGeckoMCPCollector {
     }
   }
 
-  /**
-   * Collect CFV metrics for a cryptocurrency
-   */
   async collectMetrics(symbol: string): Promise<SimpleCFVMetrics> {
     if (!this.isConnected) {
       await this.connect();
     }
-
     if (!this.client) {
       throw new Error('MCP client not initialized');
     }
-
     try {
-      // Convert symbol to coin ID (simplified - in production, use a mapping)
       const coinId = symbol.toLowerCase();
-
-      // Get comprehensive coin data
       const result = await this.client.callTool({
         name: 'get_id_coins',
         arguments: {
@@ -109,16 +76,11 @@ export class CoinGeckoMCPCollector {
           sparkline: 'false'
         }
       });
-
-      // Parse response
       const content = (result.content as any)[0];
       if (content.type !== 'text') {
         throw new Error('Unexpected response type from MCP');
       }
-
       const data = JSON.parse(content.text);
-
-      // Extract CFV metrics
       const metrics: SimpleCFVMetrics = {
         communitySize: this.extractCommunitySize(data),
         annualTxValue: this.estimateAnnualTxValue(data),
@@ -129,7 +91,6 @@ export class CoinGeckoMCPCollector {
         circulatingSupply: data.market_data?.circulating_supply || 0,
         totalSupply: data.market_data?.total_supply || 0
       };
-
       return metrics;
     } catch (error) {
       logger.error('Error collecting metrics', { 
@@ -140,45 +101,28 @@ export class CoinGeckoMCPCollector {
     }
   }
 
-  /**
-   * Extract community size from CoinGecko data
-   * Uses composite scoring: onChain (50%), GitHub (30%), Social (20%)
-   */
   private extractCommunitySize(data: any): number {
     const community = data.community_data || {};
     const developer = data.developer_data || {};
     const market = data.market_data || {};
-    
-    // Social metrics (easier to game)
     const twitter = community.twitter_followers || 0;
     const reddit = community.reddit_subscribers || 0;
     const telegram = community.telegram_channel_user_count || 0;
-    
-    // GitHub metrics (moderate difficulty to game)
     const contributors = developer.contributors || 0;
     const stars = developer.stars || 0;
     const forks = developer.forks || 0;
-    
-    // Calculate component scores
     const socialMetrics = [twitter, reddit, telegram].filter(v => v > 0);
     const socialScore = socialMetrics.length > 0 
       ? socialMetrics.reduce((sum, val) => sum + val, 0) / socialMetrics.length 
       : 0;
-    
     const githubScore = contributors > 0 
       ? contributors + (stars / STARS_WEIGHT_DIVISOR) + (forks / FORKS_WEIGHT_DIVISOR)
       : 0;
-    
-    // On-chain estimation
     const circulatingSupply = market.circulating_supply || 0;
     const onChainScore = circulatingSupply > 0 
       ? Math.min(circulatingSupply / CIRCULATING_SUPPLY_DIVISOR, MAX_ONCHAIN_SCORE)
       : 0;
-    
-    // Get community weights from CFVCalculator (single source of truth)
     const weights = CFVCalculator.getCommunityWeights();
-    
-    // Apply composite weights
     return Math.round(
       onChainScore * weights.onChain +
       githubScore * weights.github +
@@ -186,96 +130,84 @@ export class CoinGeckoMCPCollector {
     );
   }
 
-  /**
-   * Estimate annual transaction value
-   * HEURISTIC: Based on market data (volume24h × 365)
-   * This assumes current 24h volume is representative of average daily volume
-   * Confidence: LOW-MEDIUM due to volume volatility
-   */
   private estimateAnnualTxValue(data: any): number {
     const marketData = data.market_data || {};
     const volume24h = marketData.total_volume?.usd || 0;
-    
-    // Estimate annual volume (365 days)
-    // NOTE: This is a rough estimate - actual on-chain data would be more accurate
     return volume24h * CoinGeckoMCPCollector.DAYS_PER_YEAR;
   }
 
-  /**
-   * Estimate annual transaction count
-
-   */
   private estimateAnnualTxCount(data: any): number {
     const marketData = data.market_data || {};
     const volume24h = marketData.total_volume?.usd || 0;
     const marketCap = marketData.market_cap?.usd || 0;
     const price = marketData.current_price?.usd || 0;
     const circulatingSupply = marketData.circulating_supply || 0;
-    
-
+    const avgTxValue = this.estimateAvgTxValue(marketCap, price, circulatingSupply);
+    return avgTxValue > 0 ? Math.round((volume24h * 365) / avgTxValue) : 0;
   }
 
-  /**
-   * Extract developer activity metrics
-   */
   private extractDevelopers(data: any): number {
     const devData = data.developer_data || {};
-    
-    // Use GitHub contributors as proxy for active developers
     const contributors = devData.contributors || 0;
     const forks = devData.forks || 0;
     const stars = devData.stars || 0;
-    
-    // Weight contributors more heavily
     return Math.floor(contributors + (forks / 100) + (stars / 1000));
   }
 
-  /**
-   * Get data source information
-   */
   getDataSource(): DataSource {
     return {
       name: 'CoinGecko MCP',
       type: 'mcp',
-      reliability: 0.95, // High reliability for official MCP server
+      reliability: 0.95,
       lastUpdated: new Date()
     };
   }
 
-  /**
-   * Validate collected metrics
-   */
   validateMetrics(metrics: SimpleCFVMetrics): ValidationResult {
     const issues: string[] = [];
     let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
-
-    // Check for missing critical data
     if (!metrics.communitySize || metrics.communitySize === 0) {
       issues.push('Community size is missing or zero');
       confidence = 'MEDIUM';
     }
-
     if (!metrics.currentPrice || metrics.currentPrice === 0) {
       issues.push('Current price is missing or zero');
       confidence = 'LOW';
     }
-
     if (!metrics.marketCap || metrics.marketCap === 0) {
       issues.push('Market cap is missing or zero');
       confidence = 'LOW';
     }
-
-    // Transaction metrics are estimated with LOW confidence
-    if (metrics.annualTxValue || metrics.annualTxCount) {
-
-    }
-
     return {
       isValid: issues.length === 0 || confidence !== 'LOW',
       confidence,
       issues,
       source: this.getDataSource()
     };
+  }
+
+  private estimateAvgTxValue(marketCap: number, price: number, circulatingSupply: number): number {
+    if (marketCap >= CoinGeckoMCPCollector.LARGE_CAP_THRESHOLD) {
+      return Math.max(
+        marketCap * CoinGeckoMCPCollector.LARGE_CAP_AVG_TX_RATIO,
+        CoinGeckoMCPCollector.MIN_AVG_TX_VALUE
+      );
+    } else if (marketCap >= CoinGeckoMCPCollector.MID_CAP_THRESHOLD) {
+      return Math.max(
+        marketCap * CoinGeckoMCPCollector.MID_CAP_AVG_TX_RATIO,
+        CoinGeckoMCPCollector.MIN_AVG_TX_VALUE
+      );
+    } else if (circulatingSupply > 0) {
+      return Math.max(
+        circulatingSupply * CoinGeckoMCPCollector.SMALL_CAP_SUPPLY_VELOCITY * price,
+        CoinGeckoMCPCollector.MIN_AVG_TX_VALUE
+      );
+    } else {
+      return Math.max(
+        price * CoinGeckoMCPCollector.FALLBACK_TX_MULTIPLIER,
+        CoinGeckoMCPCollector.MIN_AVG_TX_VALUE
+      );
+    }
   }
 }
 

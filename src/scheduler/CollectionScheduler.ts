@@ -20,6 +20,8 @@ export interface SchedulerConfig {
   };
   coingeckoApiKey?: string;
   intervalMinutes: number; // Collection interval in minutes
+  concurrency?: Record<string, number>;
+  maxConcurrency?: number;
 }
 
 export class CollectionScheduler {
@@ -194,17 +196,11 @@ export class CollectionScheduler {
       const coins = await this.db.getActiveCoins();
       const runId = await this.db.startCollectionRun(coins.length);
 
+      const { successful, failed, lastError } = await this.processCoinsConcurrently(coins, this.config.maxConcurrency || 5);
 
-      // Update collection run
-      const status = failed === 0 ? 'completed' : (successful > 0 ? 'completed' : 'failed');
-      await this.db.updateCollectionRun(runId, status, successful, failed, lastError);
 
-      logger.info('Collection run completed', {
-        successful,
-        failed,
-        total: coins.length,
-        successRate: ((successful / coins.length) * 100).toFixed(1)
-      });
+
+
     } catch (error) {
       logger.error('Collection run failed', { error: error instanceof Error ? error.message : String(error) });
     }

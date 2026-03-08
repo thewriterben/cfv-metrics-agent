@@ -108,8 +108,8 @@ export class CoinGeckoAPICollector {
       // Get community weights from CFVCalculator (single source of truth)
       const weights = CFVCalculator.getCommunityWeights();
       
-      // Apply composite weights
-      const communitySize = Math.round(
+      // Apply composite weights to derive the single Adoption figure
+      const adoption = Math.round(
         onChainScore * weights.onChain +
         githubScore * weights.github +
         socialScore * weights.social
@@ -131,7 +131,7 @@ export class CoinGeckoAPICollector {
       const developers = developerData.forks || 0;
 
       return {
-        communitySize,
+        adoption,
         annualTxCount,
         annualTxValue,
         developers,
@@ -211,8 +211,8 @@ export class CoinGeckoAPICollector {
     const errors: string[] = [];
     const warnings: string[] = [];
 
-    if (metrics.communitySize === 0) {
-      warnings.push('No community data available');
+    if (metrics.adoption === 0) {
+      warnings.push('No adoption data available');
     }
 
     if (metrics.annualTxCount === 0) {

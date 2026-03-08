@@ -110,19 +110,19 @@ describe('CacheManager', () => {
         coinName: 'Bitcoin',
         metrics: mockBTCMetrics,
         calculation: {
+          compositeScore: 0.491,
           fairValue: 50000,
           fairMarketCap: 975000000000,
           currentPrice: 45000,
           currentMarketCap: 877500000000,
-          networkPowerScore: 1000000,
           valuationStatus: 'undervalued',
           valuationPercent: -10,
           priceMultiplier: 0.9,
-          breakdown: {
-            communityContribution: 1000,
-            transactionValueContribution: 100,
-            transactionCountContribution: 100,
-            developerContribution: 10,
+          componentScores: {
+            adoptionScore: 0.068,
+            transactionValueScore: 0.186,
+            transactionCountScore: 0.021,
+            developerScore: 0.994,
           },
         },
         timestamp: new Date(),
@@ -147,19 +147,19 @@ describe('CacheManager', () => {
         coinName: 'Bitcoin',
         metrics: mockBTCMetrics,
         calculation: {
+          compositeScore: 0.491,
           fairValue: 50000,
           fairMarketCap: 975000000000,
           currentPrice: 45000,
           currentMarketCap: 877500000000,
-          networkPowerScore: 1000000,
           valuationStatus: 'undervalued',
           valuationPercent: -10,
           priceMultiplier: 0.9,
-          breakdown: {
-            communityContribution: 1000,
-            transactionValueContribution: 100,
-            transactionCountContribution: 100,
-            developerContribution: 10,
+          componentScores: {
+            adoptionScore: 0.068,
+            transactionValueScore: 0.186,
+            transactionCountScore: 0.021,
+            developerScore: 0.994,
           },
         },
         timestamp: new Date(),
@@ -175,25 +175,25 @@ describe('CacheManager', () => {
       );
     });
 
-    it('should cache CFV result with custom TTL', async () => {
+    it('should cache CFV result with custom TTL', () => {
       const cfvResult: CFVResult = {
         coinSymbol: 'BTC',
         coinName: 'Bitcoin',
         metrics: mockBTCMetrics,
         calculation: {
+          compositeScore: 0.491,
           fairValue: 50000,
           fairMarketCap: 975000000000,
           currentPrice: 45000,
           currentMarketCap: 877500000000,
-          networkPowerScore: 1000000,
           valuationStatus: 'undervalued',
           valuationPercent: -10,
           priceMultiplier: 0.9,
-          breakdown: {
-            communityContribution: 1000,
-            transactionValueContribution: 100,
-            transactionCountContribution: 100,
-            developerContribution: 10,
+          componentScores: {
+            adoptionScore: 0.068,
+            transactionValueScore: 0.186,
+            transactionCountScore: 0.021,
+            developerScore: 0.994,
           },
         },
         timestamp: new Date(),

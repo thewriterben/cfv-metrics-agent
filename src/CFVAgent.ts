@@ -123,7 +123,7 @@ export class CFVAgent {
    */
   private async collectAllMetrics(coinSymbol: string): Promise<CFVMetrics> {
     const metricsToCollect: MetricType[] = [
-      'communitySize',
+      'adoption',
       'annualTransactionValue',
       'annualTransactions',
       'developers',
@@ -234,7 +234,7 @@ export class CFVAgent {
       case 'annualTransactionValue':
       case 'annualTransactions':
         return this.config.cacheTTL.medium; // 1 hour
-      case 'communitySize':
+      case 'adoption':
       case 'developers':
         return this.config.cacheTTL.long; // 24 hours
       case 'circulatingSupply':
@@ -279,7 +279,7 @@ export class CFVAgent {
     
     output += `📊 METRICS (Confidence: ${result.overallConfidence})\n`;
     output += `${'─'.repeat(60)}\n`;
-    output += `  Community Size:        ${CFVCalculator.formatNumber(metrics.communitySize.value)} (${metrics.communitySize.confidence})\n`;
+    output += `  Adoption (Holders):    ${CFVCalculator.formatNumber(metrics.adoption.value)} (${metrics.adoption.confidence})\n`;
     output += `  Annual TX Value:       ${CFVCalculator.formatCurrency(metrics.annualTransactionValue.value)} (${metrics.annualTransactionValue.confidence})\n`;
     output += `  Annual TX Count:       ${CFVCalculator.formatNumber(metrics.annualTransactions.value)} (${metrics.annualTransactions.confidence})\n`;
     output += `  Developers:            ${metrics.developers.value} (${metrics.developers.confidence})\n`;
@@ -288,7 +288,7 @@ export class CFVAgent {
     
     output += `💰 VALUATION\n`;
     output += `${'─'.repeat(60)}\n`;
-    output += `  Network Power Score:   ${calculation.networkPowerScore.toExponential(2)}\n`;
+    output += `  Composite Score (S):   ${calculation.compositeScore.toFixed(4)} (1.0 = Bitcoin benchmark)\n`;
     output += `  Fair Value:            ${CFVCalculator.formatCurrency(calculation.fairValue)}\n`;
     output += `  Current Price:         ${CFVCalculator.formatCurrency(calculation.currentPrice)}\n`;
     output += `  Price Multiplier:      ${calculation.priceMultiplier.toFixed(2)}x\n\n`;

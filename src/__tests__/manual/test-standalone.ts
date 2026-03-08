@@ -32,11 +32,11 @@ async function testCFVCalculation(coinSymbol: string) {
     }
     console.log(`✅ ${coinSymbol} is supported\n`);
     
-    // Test 2: Collect community size
-    console.log(`📊 Step 2: Collecting community size...`);
-    const communitySize = await coinGecko.collect(coinSymbol, 'communitySize');
-    console.log(`✅ Community Size: ${CFVCalculator.formatNumber(communitySize.value)} (${communitySize.confidence})`);
-    console.log(`   Sources: ${JSON.stringify(communitySize.metadata)}\n`);
+    // Test 2: Collect adoption (unique holders)
+    console.log(`📊 Step 2: Collecting adoption (unique holders)...`);
+    const adoption = await coinGecko.collect(coinSymbol, 'adoption');
+    console.log(`✅ Adoption: ${CFVCalculator.formatNumber(adoption.value)} (${adoption.confidence})`);
+    console.log(`   Sources: ${JSON.stringify(adoption.metadata)}\n`);
     
     // Test 3: Collect developers
     console.log(`👨‍💻 Step 3: Collecting developer metrics...`);
@@ -92,9 +92,9 @@ async function testCFVCalculation(coinSymbol: string) {
     console.log(`⚠️  Annual TX Count: ${CFVCalculator.formatNumber(annualTxCount.value)} (estimated)\n`);
     
     // Test 7: Calculate CFV
-    console.log(`🧮 Step 7: Calculating CFV using 70/10/10/10 formula...`);
+    console.log(`🧮 Step 7: Calculating CFV using Digital Gold Standard formula...`);
     const metrics: CFVMetrics = {
-      communitySize,
+      adoption,
       annualTransactionValue: annualTxValue,
       annualTransactions: annualTxCount,
       developers: {
@@ -115,7 +115,7 @@ async function testCFVCalculation(coinSymbol: string) {
     console.log(`${'='.repeat(70)}\n`);
     
     console.log(`📊 INPUT METRICS:`);
-    console.log(`   Community Size:        ${CFVCalculator.formatNumber(metrics.communitySize.value)}`);
+    console.log(`   Adoption (Holders):    ${CFVCalculator.formatNumber(metrics.adoption.value)}`);
     console.log(`   Annual TX Value:       ${CFVCalculator.formatCurrency(metrics.annualTransactionValue.value)}`);
     console.log(`   Annual TX Count:       ${CFVCalculator.formatNumber(metrics.annualTransactions.value)}`);
     console.log(`   Developers:            ${metrics.developers.value}`);
@@ -123,7 +123,8 @@ async function testCFVCalculation(coinSymbol: string) {
     console.log(`   Circulating Supply:    ${CFVCalculator.formatNumber(metrics.circulatingSupply.value)}\n`);
     
     console.log(`💰 VALUATION:`);
-    console.log(`   Network Power Score:   ${calculation.networkPowerScore.toExponential(2)}`);
+    console.log(`   Composite Score (S):   ${calculation.compositeScore.toFixed(4)} (1.0 = Bitcoin benchmark)`);
+    console.log(`   Fair Market Cap:       ${CFVCalculator.formatCurrency(calculation.fairMarketCap)}`);
     console.log(`   Fair Value:            ${CFVCalculator.formatCurrency(calculation.fairValue)}`);
     console.log(`   Current Price:         ${CFVCalculator.formatCurrency(calculation.currentPrice)}`);
     console.log(`   Price Multiplier:      ${calculation.priceMultiplier.toFixed(2)}x\n`);

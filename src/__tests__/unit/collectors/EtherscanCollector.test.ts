@@ -52,7 +52,7 @@ describe('EtherscanCollector', () => {
       // Mock CoinGecko collector
       const mockCoinGeckoCollector = (collector as any).coingeckoCollector;
       jest.spyOn(mockCoinGeckoCollector, 'collectMetrics').mockResolvedValue({
-        communitySize: 1000000,
+        adoption: 1000000,
         annualTxCount: 50000000,
         annualTxValue: 10000000000000, // $10 trillion annually
         developers: 1000,
@@ -152,8 +152,8 @@ describe('EtherscanCollector', () => {
   describe('collect - unsupported metric', () => {
     it('should throw error for unsupported metrics', async () => {
       await expect(
-        collector.collect('ETH', 'communitySize' as any)
-      ).rejects.toThrow('Metric communitySize not supported by Etherscan collector');
+        collector.collect('ETH', 'adoption' as any)
+      ).rejects.toThrow('Metric adoption not supported by Etherscan collector');
     });
   });
 

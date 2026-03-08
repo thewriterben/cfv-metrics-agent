@@ -82,7 +82,7 @@ export class CoinGeckoMCPCollector {
       }
       const data = JSON.parse(content.text);
       const metrics: SimpleCFVMetrics = {
-        communitySize: this.extractCommunitySize(data),
+        adoption: this.extractAdoption(data),
         annualTxValue: this.estimateAnnualTxValue(data),
         annualTxCount: this.estimateAnnualTxCount(data),
         developers: this.extractDevelopers(data),
@@ -101,7 +101,7 @@ export class CoinGeckoMCPCollector {
     }
   }
 
-  private extractCommunitySize(data: any): number {
+  private extractAdoption(data: any): number {
     const community = data.community_data || {};
     const developer = data.developer_data || {};
     const market = data.market_data || {};
@@ -166,8 +166,8 @@ export class CoinGeckoMCPCollector {
   validateMetrics(metrics: SimpleCFVMetrics): ValidationResult {
     const issues: string[] = [];
     let confidence: 'HIGH' | 'MEDIUM' | 'LOW' = 'MEDIUM';
-    if (!metrics.communitySize || metrics.communitySize === 0) {
-      issues.push('Community size is missing or zero');
+    if (!metrics.adoption || metrics.adoption === 0) {
+      issues.push('Adoption data is missing or zero');
       confidence = 'MEDIUM';
     }
     if (!metrics.currentPrice || metrics.currentPrice === 0) {

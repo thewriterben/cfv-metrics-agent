@@ -47,7 +47,7 @@ describe('ThreeXplCollector', () => {
       // Mock CoinGecko to return volume data
       const mockCoinGeckoCollector = (collector as any).coingeckoCollector;
       jest.spyOn(mockCoinGeckoCollector, 'collectMetrics').mockResolvedValue({
-        communitySize: 1000000,
+        adoption: 1000000,
         annualTxCount: 36500000,
         annualTxValue: 5000000000000, // $5 trillion annually
         developers: 500,
@@ -102,7 +102,7 @@ describe('ThreeXplCollector', () => {
       // Mock CoinGecko to return volume data
       const mockCoinGeckoCollector = (collector as any).coingeckoCollector;
       jest.spyOn(mockCoinGeckoCollector, 'collectMetrics').mockResolvedValue({
-        communitySize: 50000,
+        adoption: 50000,
         annualTxCount: 365000,
         annualTxValue: 365000000, // $365M annually
         developers: 50,
@@ -137,7 +137,7 @@ describe('ThreeXplCollector', () => {
       // Mock CoinGecko to return volume data
       const mockCoinGeckoCollector = (collector as any).coingeckoCollector;
       jest.spyOn(mockCoinGeckoCollector, 'collectMetrics').mockResolvedValue({
-        communitySize: 500000,
+        adoption: 500000,
         annualTxCount: 18250000,
         annualTxValue: 1000000000000,
         developers: 200,
@@ -197,7 +197,7 @@ describe('ThreeXplCollector', () => {
 
       const mockCoinGeckoCollector = (collector as any).coingeckoCollector;
       jest.spyOn(mockCoinGeckoCollector, 'collectMetrics').mockResolvedValue({
-        communitySize: 100000,
+        adoption: 100000,
         annualTxCount: 3650000,
         annualTxValue: 50000000000,
         developers: 100,

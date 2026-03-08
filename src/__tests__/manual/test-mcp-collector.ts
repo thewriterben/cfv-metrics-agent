@@ -24,7 +24,7 @@ async function testMCPCollector() {
       const metrics = await collector.collectMetrics(coin);
 
       console.log('\n✅ Metrics collected:');
-      console.log(`- Community Size: ${metrics.communitySize?.toLocaleString()}`);
+      console.log(`- Adoption (Holders): ${metrics.adoption?.toLocaleString()}`);
       console.log(`- Annual TX Value: $${metrics.annualTxValue?.toLocaleString()}`);
       console.log(`- Annual TX Count: ${metrics.annualTxCount?.toLocaleString()}`);
       console.log(`- Developers: ${metrics.developers}`);
@@ -43,23 +43,24 @@ async function testMCPCollector() {
       }
 
       // Calculate CFV if we have enough data
-      if (metrics.communitySize && metrics.annualTxValue && 
+      if (metrics.adoption && metrics.annualTxValue &&
           metrics.annualTxCount && metrics.developers) {
-        console.log('\n💰 Calculating CFV...');
+        console.log('\n💰 Calculating CFV (Digital Gold Standard)...');
         const result = CFVCalculator.calculate({
-          communitySize: { value: metrics.communitySize!, confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
-          annualTransactionValue: { value: metrics.annualTxValue!, confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
-          annualTransactions: { value: metrics.annualTxCount!, confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
-          developers: { value: metrics.developers!, confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
-          price: { value: metrics.currentPrice || 0, confidence: 'HIGH', source: 'CoinGecko MCP', timestamp: new Date() },
-          circulatingSupply: { value: metrics.circulatingSupply || 0, confidence: 'HIGH', source: 'CoinGecko MCP', timestamp: new Date() }
+          adoption:               { value: metrics.adoption!,       confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
+          annualTransactionValue: { value: metrics.annualTxValue!,  confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
+          annualTransactions:     { value: metrics.annualTxCount!,  confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
+          developers:             { value: metrics.developers!,     confidence: 'MEDIUM', source: 'CoinGecko MCP', timestamp: new Date() },
+          price:                  { value: metrics.currentPrice || 0, confidence: 'HIGH', source: 'CoinGecko MCP', timestamp: new Date() },
+          circulatingSupply:      { value: metrics.circulatingSupply || 0, confidence: 'HIGH', source: 'CoinGecko MCP', timestamp: new Date() }
         });
 
-        console.log(`- Network Power Score: ${result.networkPowerScore.toFixed(2)}`);
-        console.log(`- Fair Value: $${result.fairValue.toFixed(2)}`);
-        console.log(`- Current Price: $${result.currentPrice}`);
-        console.log(`- Valuation Status: ${result.valuationStatus}`);
-        console.log(`- Valuation Percent: ${result.valuationPercent > 0 ? '+' : ''}${result.valuationPercent.toFixed(2)}%`);
+        console.log(`- Composite Score (S): ${result.compositeScore.toFixed(4)} (1.0 = Bitcoin benchmark)`);
+        console.log(`- Fair Market Cap:     $${(result.fairMarketCap / 1e9).toFixed(2)}B`);
+        console.log(`- Fair Value:          $${result.fairValue.toFixed(2)}`);
+        console.log(`- Current Price:       $${result.currentPrice}`);
+        console.log(`- Valuation Status:    ${result.valuationStatus}`);
+        console.log(`- Valuation Percent:   ${result.valuationPercent > 0 ? '+' : ''}${result.valuationPercent.toFixed(2)}%`);
       }
     }
 

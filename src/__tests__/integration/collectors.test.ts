@@ -61,7 +61,7 @@ describe('Collector Integration Tests', () => {
       expect(metrics.currentPrice).toBe(45000);
       expect(metrics.marketCap).toBe(900000000000);
       expect(metrics.circulatingSupply).toBe(19500000);
-      expect(metrics.communitySize).toBeGreaterThan(0);
+      expect(metrics.adoption).toBeGreaterThan(0);
       expect(metrics.developers).toBeGreaterThan(0);
       expect(metrics.annualTxValue).toBeGreaterThan(0);
       expect(metrics.annualTxCount).toBeGreaterThan(0);
@@ -127,7 +127,7 @@ describe('Collector Integration Tests', () => {
       const metrics = await collector.collectMetrics('OBC');
 
       // Should return low values when data is missing (but not necessarily 0 due to circulating supply estimate)
-      expect(metrics.communitySize).toBeGreaterThanOrEqual(0); // On-chain score based on circulating supply
+      expect(metrics.adoption).toBeGreaterThanOrEqual(0); // Adoption score based on circulating supply
       expect(metrics.developers).toBe(0); // Should be 0 when no developer data
       // But should still have price and market data
       expect(metrics.currentPrice).toBe(0.50);
@@ -282,7 +282,7 @@ describe('Collector Integration Tests', () => {
 
       // Mock CoinGecko to return volume data
       const mockCoinGeckoMetrics = {
-        communitySize: 5000000,
+        adoption: 5000000,
         annualTxCount: 109500000,
         annualTxValue: 9125000000000, // $9.125T
         developers: 900,
@@ -318,41 +318,41 @@ describe('Collector Integration Tests', () => {
   });
 
   describe('CFVCalculator Integration', () => {
-    it('should calculate CFV from realistic metrics end-to-end', () => {
+    it('should calculate CFV from realistic metrics end-to-end using DGS formula', () => {
       // Create realistic Bitcoin-like metrics
       const metrics: CFVMetrics = {
-        communitySize: {
-          value: 5420000,
+        adoption: {
+          value: 50_000_000,  // 50M holders
           confidence: 'HIGH',
-          source: 'CoinGecko',
+          source: 'On-chain',
           timestamp: new Date()
         },
         annualTransactionValue: {
-          value: 2500000000000, // $2.5T
+          value: 10_000_000_000_000, // $10T
           confidence: 'MEDIUM',
           source: 'Blockchain',
           timestamp: new Date()
         },
         annualTransactions: {
-          value: 125000000, // 125M transactions
+          value: 4_000_000_000, // 4B transactions
           confidence: 'MEDIUM',
           source: 'Blockchain',
           timestamp: new Date()
         },
         developers: {
-          value: 900,
+          value: 700,
           confidence: 'HIGH',
-          source: 'GitHub',
+          source: 'Electric Capital',
           timestamp: new Date()
         },
         price: {
-          value: 45000,
+          value: 80_000,
           confidence: 'HIGH',
           source: 'CoinGecko',
           timestamp: new Date()
         },
         circulatingSupply: {
-          value: 19500000,
+          value: 19_830_000,
           confidence: 'HIGH',
           source: 'CoinGecko',
           timestamp: new Date()
@@ -363,31 +363,34 @@ describe('Collector Integration Tests', () => {
 
       // Verify calculation produces valid results
       expect(calculation.fairValue).toBeGreaterThan(0);
-      expect(calculation.networkPowerScore).toBeGreaterThan(0);
-      expect(calculation.currentPrice).toBe(45000);
-      expect(calculation.currentMarketCap).toBe(45000 * 19500000);
+      expect(calculation.compositeScore).toBeGreaterThan(0);
+      expect(calculation.currentPrice).toBe(80_000);
+      expect(calculation.currentMarketCap).toBe(80_000 * 19_830_000);
       expect(calculation.fairMarketCap).toBeGreaterThan(0);
       expect(calculation.priceMultiplier).toBeGreaterThan(0);
-      
+
       // Verify valuation status is one of the valid values
       expect(['undervalued', 'fairly valued', 'overvalued']).toContain(
         calculation.valuationStatus
       );
-      
-      // Verify breakdown components exist
-      expect(calculation.breakdown.communityContribution).toBeGreaterThan(0);
-      expect(calculation.breakdown.transactionValueContribution).toBeGreaterThan(0);
-      expect(calculation.breakdown.transactionCountContribution).toBeGreaterThan(0);
-      expect(calculation.breakdown.developerContribution).toBeGreaterThan(0);
-      
-      // Verify the network power score is the product of contributions
-      const expectedNetworkPower = 
-        calculation.breakdown.communityContribution *
-        calculation.breakdown.transactionValueContribution *
-        calculation.breakdown.transactionCountContribution *
-        calculation.breakdown.developerContribution;
-      
-      expect(calculation.networkPowerScore).toBeCloseTo(expectedNetworkPower, 0);
+
+      // Verify component scores exist and are positive
+      expect(calculation.componentScores.adoptionScore).toBeGreaterThan(0);
+      expect(calculation.componentScores.transactionValueScore).toBeGreaterThan(0);
+      expect(calculation.componentScores.transactionCountScore).toBeGreaterThan(0);
+      expect(calculation.componentScores.developerScore).toBeGreaterThan(0);
+
+      // Verify composite score = weighted sum of ratios
+      const { componentScores: cs } = calculation;
+      const expectedS =
+        0.70 * cs.adoptionScore +
+        0.10 * cs.transactionCountScore +
+        0.10 * cs.transactionValueScore +
+        0.10 * cs.developerScore;
+      expect(calculation.compositeScore).toBeCloseTo(expectedS, 6);
+
+      // Verify fair market cap = $1.983T × S
+      expect(calculation.fairMarketCap).toBeCloseTo(1_983_000_000_000 * calculation.compositeScore, 0);
     });
   });
 });

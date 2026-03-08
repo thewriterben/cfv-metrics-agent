@@ -1,4 +1,5 @@
 import type { CFVMetrics, MetricResult } from '../../types/index.js';
+import { DGS_BENCHMARK } from '../../utils/CFVCalculator.js';
 
 /**
  * Create a test metric result
@@ -18,10 +19,11 @@ export function createTestMetricResult(
 }
 
 /**
- * Create test CFV metrics with default values
+ * Create test CFV metrics with default values.
+ * Uses the `adoption` field (unique holders) as specified in "Beyond Bitcoin".
  */
 export function createTestMetrics(overrides?: Partial<{
-  communitySize: number;
+  adoption: number;
   annualTxValue: number;
   annualTxCount: number;
   developers: number;
@@ -29,48 +31,50 @@ export function createTestMetrics(overrides?: Partial<{
   circulatingSupply: number;
 }>): CFVMetrics {
   const defaults = {
-    communitySize: 1000000,
-    annualTxValue: 1000000000,
-    annualTxCount: 10000000,
-    developers: 100,
-    price: 100,
-    circulatingSupply: 1000000,
+    adoption:          1_000_000,
+    annualTxValue:     1_000_000_000,
+    annualTxCount:     10_000_000,
+    developers:        100,
+    price:             100,
+    circulatingSupply: 1_000_000,
   };
-  
+
   const values = { ...defaults, ...overrides };
-  
+
   return {
-    communitySize: createTestMetricResult(values.communitySize),
+    adoption:               createTestMetricResult(values.adoption),
     annualTransactionValue: createTestMetricResult(values.annualTxValue),
-    annualTransactions: createTestMetricResult(values.annualTxCount),
-    developers: createTestMetricResult(values.developers),
-    price: createTestMetricResult(values.price),
-    circulatingSupply: createTestMetricResult(values.circulatingSupply),
+    annualTransactions:     createTestMetricResult(values.annualTxCount),
+    developers:             createTestMetricResult(values.developers),
+    price:                  createTestMetricResult(values.price),
+    circulatingSupply:      createTestMetricResult(values.circulatingSupply),
   };
 }
 
 /**
- * Mock Bitcoin metrics
+ * Bitcoin at the December 2024 DGS calibration point.
+ * All ratios should equal 1.0, composite score S = 1.0,
+ * fair market cap = $1.983T, fair price = $100,000.
  */
 export const mockBTCMetrics: CFVMetrics = {
-  communitySize: createTestMetricResult(5420000, 'HIGH', 'CoinGecko'),
-  annualTransactionValue: createTestMetricResult(2500000000000, 'MEDIUM', 'Blockchain'),
-  annualTransactions: createTestMetricResult(125000000, 'MEDIUM', 'Blockchain'),
-  developers: createTestMetricResult(850, 'HIGH', 'GitHub'),
-  price: createTestMetricResult(45000, 'HIGH', 'CoinGecko'),
-  circulatingSupply: createTestMetricResult(19500000, 'HIGH', 'CoinGecko'),
+  adoption:               createTestMetricResult(DGS_BENCHMARK.adoption,           'HIGH', 'DGS Benchmark'),
+  annualTransactionValue: createTestMetricResult(DGS_BENCHMARK.annualTxValue,       'HIGH', 'DGS Benchmark'),
+  annualTransactions:     createTestMetricResult(DGS_BENCHMARK.annualTransactions,  'HIGH', 'DGS Benchmark'),
+  developers:             createTestMetricResult(DGS_BENCHMARK.developers,          'HIGH', 'DGS Benchmark'),
+  price:                  createTestMetricResult(100_000,                           'HIGH', 'CoinGecko'),
+  circulatingSupply:      createTestMetricResult(19_830_000,                        'HIGH', 'CoinGecko'),
 };
 
 /**
- * Mock Ethereum metrics
+ * Ethereum — representative metrics for testing (not DGS calibration values)
  */
 export const mockETHMetrics: CFVMetrics = {
-  communitySize: createTestMetricResult(3200000, 'HIGH', 'CoinGecko'),
-  annualTransactionValue: createTestMetricResult(1800000000000, 'HIGH', 'Etherscan'),
-  annualTransactions: createTestMetricResult(365000000, 'HIGH', 'Etherscan'),
-  developers: createTestMetricResult(5200, 'HIGH', 'GitHub'),
-  price: createTestMetricResult(3000, 'HIGH', 'CoinGecko'),
-  circulatingSupply: createTestMetricResult(120000000, 'HIGH', 'Etherscan'),
+  adoption:               createTestMetricResult(50_000_000,           'HIGH', 'CoinGecko'),
+  annualTransactionValue: createTestMetricResult(3_000_000_000_000,    'HIGH', 'Etherscan'),
+  annualTransactions:     createTestMetricResult(1_200_000_000,        'HIGH', 'Etherscan'),
+  developers:             createTestMetricResult(2_400,                'HIGH', 'Electric Capital'),
+  price:                  createTestMetricResult(3_500,                'HIGH', 'CoinGecko'),
+  circulatingSupply:      createTestMetricResult(120_000_000,          'HIGH', 'Etherscan'),
 };
 
 /**
@@ -85,7 +89,7 @@ export function createMultipleMetricResults(
     value,
     confidence: confidences?.[index] || 'HIGH',
     source: sources?.[index] || `source-${index}`,
-    timestamp: new Date(Date.now() - index * 1000 * 60), // Stagger timestamps
+    timestamp: new Date(Date.now() - index * 1000 * 60),
     metadata: {},
   }));
 }

@@ -148,12 +148,12 @@ describe('ValidationEngine', () => {
   });
 
   describe('validateRange', () => {
-    it('should validate communitySize range', () => {
-      expect(ValidationEngine.validateRange('communitySize', 1000000)).toBe(true);
-      expect(ValidationEngine.validateRange('communitySize', 0)).toBe(true);
-      expect(ValidationEngine.validateRange('communitySize', 1e9)).toBe(true);
-      expect(ValidationEngine.validateRange('communitySize', 1e10)).toBe(false);
-      expect(ValidationEngine.validateRange('communitySize', -100)).toBe(false);
+    it('should validate adoption range', () => {
+      expect(ValidationEngine.validateRange('adoption', 1000000)).toBe(true);
+      expect(ValidationEngine.validateRange('adoption', 0)).toBe(true);
+      expect(ValidationEngine.validateRange('adoption', 1e9)).toBe(true);
+      expect(ValidationEngine.validateRange('adoption', 1e10)).toBe(false);
+      expect(ValidationEngine.validateRange('adoption', -100)).toBe(false);
     });
 
     it('should validate annualTransactionValue range', () => {

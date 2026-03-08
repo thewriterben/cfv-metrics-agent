@@ -68,8 +68,8 @@ export class CoinGeckoCollector implements MetricCollector {
             const coinInfo = await this.getCoinInfo(coin);
             
             switch (metric) {
-              case 'communitySize':
-                return await this.collectCommunitySize(coinInfo.id);
+              case 'adoption':
+                return await this.collectAdoption(coinInfo.id);
               
               case 'developers':
                 return await this.collectDevelopers(coinInfo.id);
@@ -161,7 +161,7 @@ export class CoinGeckoCollector implements MetricCollector {
     return response.data;
   }
   
-  private async collectCommunitySize(coinId: string): Promise<MetricResult> {
+  private async collectAdoption(coinId: string): Promise<MetricResult> {
     const data = await this.getCoinData(coinId);
     
     // Social metrics (easier to game)
@@ -202,8 +202,8 @@ export class CoinGeckoCollector implements MetricCollector {
     // Get community weights from CFVCalculator (single source of truth)
     const weights = CFVCalculator.getCommunityWeights();
     
-    // Apply composite weights
-    const communitySize = Math.round(
+    // Apply composite weights to derive the single Adoption figure
+    const adoption = Math.round(
       onChainScore * weights.onChain +
       githubScore * weights.github +
       socialScore * weights.social
@@ -221,7 +221,7 @@ export class CoinGeckoCollector implements MetricCollector {
     else if (categoriesAvailable >= 2) confidence = 'MEDIUM';
     
     return {
-      value: communitySize,
+      value: adoption,
       confidence,
       source: 'CoinGecko',
       timestamp: new Date(),

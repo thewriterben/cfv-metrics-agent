@@ -141,8 +141,8 @@ export class ValidationEngine {
    */
   static validateRange(metricType: string, value: number): boolean {
     switch (metricType) {
-      case 'communitySize':
-        return value >= 0 && value <= 1e9; // Max 1 billion
+      case 'adoption':
+        return value >= 0 && value <= 1e9; // Max 1 billion unique holders
       
       case 'annualTransactionValue':
         return value >= 0 && value <= 1e15; // Max 1 quadrillion USD

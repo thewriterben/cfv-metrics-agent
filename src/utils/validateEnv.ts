@@ -36,27 +36,27 @@ export function validateEnvironment(): ValidationResult {
   
   // Check database configuration
   const mysqlUrl = process.env.MYSQL_URL;
-  const dbHost = process.env.DB_HOST || process.env.MYSQLHOST;
-  const dbUser = process.env.DB_USER || process.env.MYSQLUSER;
-  const dbPassword = process.env.DB_PASSWORD || process.env.MYSQLPASSWORD;
-  const dbName = process.env.DB_NAME || process.env.MYSQLDATABASE;
+  const dbHost = process.env.DB_HOST;
+  const dbUser = process.env.DB_USER;
+  const dbPassword = process.env.DB_PASSWORD;
+  const dbName = process.env.DB_NAME;
   
   if (!mysqlUrl && !dbHost) {
-    errors.push('Database configuration missing. Set either MYSQL_URL or DB_HOST/MYSQLHOST');
+    errors.push('Database configuration missing. Set either MYSQL_URL or DB_HOST');
   }
   
   if (!mysqlUrl) {
     // Check individual database variables if MYSQL_URL is not provided
     if (!dbUser) {
-      warnings.push('DB_USER/MYSQLUSER not set. Defaulting to "root"');
+      warnings.push('DB_USER not set. Defaulting to "root"');
     }
     
     if (!dbPassword) {
-      warnings.push('DB_PASSWORD/MYSQLPASSWORD not set. Using empty password');
+      warnings.push('DB_PASSWORD not set. Using empty password');
     }
     
     if (!dbName) {
-      warnings.push('DB_NAME/MYSQLDATABASE not set. Defaulting to "cfv_metrics"');
+      warnings.push('DB_NAME not set. Defaulting to "cfv_metrics"');
     }
   }
   

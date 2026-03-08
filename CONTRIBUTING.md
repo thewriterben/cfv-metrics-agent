@@ -327,7 +327,7 @@ If you discover a security vulnerability:
   # Check for CoinGecko API keys specifically
   git diff --cached | grep -E "CG-[A-Za-z0-9]+"
   ```
-- **Template Files**: Files like `railway-env-vars.txt` and `.env.production.template` should only contain placeholder values (e.g., `your_api_key_here`)
+- **Template Files**: Files like `.env.production.template` should only contain placeholder values (e.g., `your_api_key_here`)
 - **If You Accidentally Commit a Secret**:
   1. Immediately rotate/revoke the exposed credential
   2. Remove it from the repository history (contact maintainers for help)

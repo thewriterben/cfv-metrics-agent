@@ -24,7 +24,7 @@ validateAndReportEnvironment();
 // Configuration
 // Parse database configuration from MYSQL_URL or individual variables
 function parseDatabaseConfig() {
-  // If MYSQL_URL is provided (Railway format), parse it
+  // If MYSQL_URL is provided, parse it
   if (process.env.MYSQL_URL) {
     try {
       const url = new URL(process.env.MYSQL_URL);
@@ -42,11 +42,11 @@ function parseDatabaseConfig() {
   
   // Fall back to individual environment variables
   return {
-    host: process.env.DB_HOST || process.env.MYSQLHOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || process.env.MYSQLPORT || '3306'),
-    user: process.env.DB_USER || process.env.MYSQLUSER || 'root',
-    password: process.env.DB_PASSWORD || process.env.MYSQLPASSWORD || '',
-    database: process.env.DB_NAME || process.env.MYSQLDATABASE || 'cfv_metrics'
+    host: process.env.DB_HOST || 'localhost',
+    port: parseInt(process.env.DB_PORT || '3306'),
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '',
+    database: process.env.DB_NAME || 'cfv_metrics'
   };
 }
 

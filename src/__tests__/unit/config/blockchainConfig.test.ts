@@ -23,7 +23,12 @@ describe('blockchainConfig', () => {
         const date = new Date(config.genesisDate);
         expect(date.toString()).not.toBe('Invalid Date');
         expect(date.getFullYear()).toBeGreaterThan(2008); // Bitcoin is first
-        expect(date.getFullYear()).toBeLessThan(2027);
+        if (symbol === 'DGD') {
+          // Digital Gold is a new coin with a 2026 genesis per the "Beyond Bitcoin" white paper
+          expect(date.getFullYear()).toBeLessThanOrEqual(2026);
+        } else {
+          expect(date.getFullYear()).toBeLessThan(2025);
+        }
       }
     });
   });

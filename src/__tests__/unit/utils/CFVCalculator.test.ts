@@ -1,6 +1,6 @@
 /**
  * CFVCalculator Tests
- * Validates the Digital Gold Standard formula from "Beyond Bitcoin" by John Gotts
+ * Validates the Digital Gold Standard formula from "Beyond Bitcoin" by Sir John Wright Gotts
  */
 
 import { CFVCalculator, DGS_BENCHMARK, CFV_WEIGHTS } from '../../../utils/CFVCalculator.js';

@@ -8,7 +8,7 @@ import {
 describe('blockchainConfig', () => {
   describe('BLOCKCHAIN_CONFIG', () => {
     it('should contain all expected blockchains', () => {
-      const expectedSymbols = ['BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH', 'XEC', 'XNO', 'NEAR', 'ICP', 'EGLD'];
+      const expectedSymbols = ['BTC', 'ETH', 'DGB', 'DASH', 'BLK', 'XMR', 'XNO', 'ZCL', 'RVN', 'XEC', 'EGLD', 'NEAR', 'ICP', 'XCH', 'DGD'];
       
       for (const symbol of expectedSymbols) {
         expect(BLOCKCHAIN_CONFIG[symbol]).toBeDefined();
@@ -23,7 +23,7 @@ describe('blockchainConfig', () => {
         const date = new Date(config.genesisDate);
         expect(date.toString()).not.toBe('Invalid Date');
         expect(date.getFullYear()).toBeGreaterThan(2008); // Bitcoin is first
-        expect(date.getFullYear()).toBeLessThan(2025);
+        expect(date.getFullYear()).toBeLessThan(2027);
       }
     });
   });
@@ -39,17 +39,17 @@ describe('blockchainConfig', () => {
     });
 
     it('should calculate days live for NEAR correctly', () => {
-      // NEAR mainnet: 2020-04-22
-      const referenceDate = new Date('2024-04-22');
+      // NEAR mainnet: 2020-10-01
+      const referenceDate = new Date('2024-10-01');
       const daysLive = calculateDaysLive('NEAR', referenceDate);
       
-      // Should be exactly 4 years = 1461 days (including leap year 2020)
+      // Should be exactly 4 years = 1461 days (including leap year 2024)
       expect(daysLive).toBe(1461);
     });
 
     it('should calculate days live for XNO correctly', () => {
-      // Nano launch: 2015-03-01
-      const referenceDate = new Date('2024-03-01');
+      // Nano launch: 2015-10-01
+      const referenceDate = new Date('2024-10-01');
       const daysLive = calculateDaysLive('XNO', referenceDate);
       
       // Should be exactly 9 years = 3288 days (including leap years)

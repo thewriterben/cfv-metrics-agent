@@ -1,12 +1,12 @@
-# Community Size Composite Scoring
+# Adoption Composite Scoring
 
 ## Overview
 
-The CFV (Community, Fundamentals, Value) formula weights community size at **70%** of the total calculation. To prevent gaming and reward genuine activity, we implemented a **composite scoring approach** that combines multiple data sources with different weights based on their resistance to manipulation.
+The CFV formula weights Adoption at **70%** of the total calculation, as specified in "Beyond Bitcoin" Chapter 21: "Adoption Is King." To prevent gaming and reward genuine activity, we implemented a **composite scoring approach** that combines multiple data sources with different weights based on their resistance to manipulation.
 
 ## Problem Statement
 
-Previously, community size was calculated as a simple sum of:
+Previously, adoption was calculated as a simple sum of:
 - Twitter followers
 - Reddit subscribers  
 - Telegram users
@@ -20,7 +20,7 @@ This approach had significant issues:
 
 ### Weight Distribution
 
-Community size is now calculated as a **weighted composite** of three categories:
+Adoption is now calculated as a **weighted composite** of three categories:
 
 | Category | Weight | Rationale | Data Sources |
 |----------|--------|-----------|--------------|

@@ -38,20 +38,24 @@ export async function initializeDatabase(config: {
 
     // Insert initial coin data (safe with ON DUPLICATE KEY UPDATE)
     // This preserves any existing coin data and only updates if needed
+    // 13 CFV CoinFund coins from "Beyond Bitcoin" Chapter 27, plus BTC (benchmark) and ETH
     const insertCoins = `
       INSERT INTO coins (symbol, name, coingecko_id, collector_type, confidence_level, active) VALUES
       ('BTC', 'Bitcoin', 'bitcoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('ETH', 'Ethereum', 'ethereum', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('DASH', 'Dash', 'dash', 'DashAPI', 'MEDIUM', TRUE),
       ('DGB', 'DigiByte', 'digibyte', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('DASH', 'Digital Cash', 'dash', 'DashAPI', 'MEDIUM', TRUE),
+      ('BLK', 'Blackcoin', 'blackcoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('XMR', 'Monero', 'monero', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('RVN', 'Ravencoin', 'ravencoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('XCH', 'Chia', 'chia', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('XEC', 'eCash', 'ecash', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('XNO', 'Nano', 'nano', 'NanoRPC', 'HIGH', TRUE),
+      ('ZCL', 'ZClassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('RVN', 'Ravencoin', 'ravencoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('XEC', 'eCash', 'ecash', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('EGLD', 'MultiversX', 'elrond-erd-2', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('NEAR', 'NEAR Protocol', 'near', 'NearBlocksAPI', 'MEDIUM', TRUE),
       ('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('ZCL', 'Zclassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM', TRUE)
+      ('XCH', 'Chia', 'chia', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('DGD', 'Digital Gold', 'digital-gold-token', 'CoinGeckoAPI', 'MEDIUM', TRUE)
       ON DUPLICATE KEY UPDATE 
           name=VALUES(name), 
           coingecko_id=VALUES(coingecko_id),
@@ -61,7 +65,7 @@ export async function initializeDatabase(config: {
     `;
 
     await connection.query(insertCoins);
-    logger.info('Initial coin data inserted/updated', { count: 12, type: 'DGF coins' });
+    logger.info('Initial coin data inserted/updated', { count: 15, type: 'CFV CoinFund + benchmark coins' });
 
     // Verify
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM coins');

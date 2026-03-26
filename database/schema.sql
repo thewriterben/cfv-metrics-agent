@@ -84,18 +84,23 @@ CREATE TABLE IF NOT EXISTS collection_runs (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Insert initial coin data (safe with ON DUPLICATE KEY UPDATE)
+-- 13 CFV CoinFund coins from "Beyond Bitcoin" Chapter 27, plus BTC (benchmark) and ETH
 INSERT INTO coins (symbol, name, coingecko_id, collector_type, confidence_level) VALUES
 ('BTC', 'Bitcoin', 'bitcoin', 'CoinGeckoAPI', 'MEDIUM'),
 ('ETH', 'Ethereum', 'ethereum', 'CoinGeckoAPI', 'MEDIUM'),
-('DASH', 'Dash', 'dash', 'DashAPI', 'MEDIUM'),
 ('DGB', 'DigiByte', 'digibyte', 'CoinGeckoAPI', 'MEDIUM'),
+('DASH', 'Digital Cash', 'dash', 'DashAPI', 'MEDIUM'),
+('BLK', 'Blackcoin', 'blackcoin', 'CoinGeckoAPI', 'MEDIUM'),
 ('XMR', 'Monero', 'monero', 'CoinGeckoAPI', 'MEDIUM'),
-('RVN', 'Ravencoin', 'ravencoin', 'CoinGeckoAPI', 'MEDIUM'),
-('XCH', 'Chia', 'chia', 'CoinGeckoAPI', 'MEDIUM'),
-('XEC', 'eCash', 'ecash', 'CoinGeckoAPI', 'MEDIUM'),
 ('XNO', 'Nano', 'nano', 'NanoRPC', 'HIGH'),
+('ZCL', 'ZClassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM'),
+('RVN', 'Ravencoin', 'ravencoin', 'CoinGeckoAPI', 'MEDIUM'),
+('XEC', 'eCash', 'ecash', 'CoinGeckoAPI', 'MEDIUM'),
+('EGLD', 'MultiversX', 'elrond-erd-2', 'CoinGeckoAPI', 'MEDIUM'),
 ('NEAR', 'NEAR Protocol', 'near', 'NearBlocksAPI', 'MEDIUM'),
-('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM')
+('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM'),
+('XCH', 'Chia', 'chia', 'CoinGeckoAPI', 'MEDIUM'),
+('DGD', 'Digital Gold', 'digital-gold-token', 'CoinGeckoAPI', 'MEDIUM')
 ON DUPLICATE KEY UPDATE
   name = VALUES(name),
   coingecko_id = VALUES(coingecko_id),

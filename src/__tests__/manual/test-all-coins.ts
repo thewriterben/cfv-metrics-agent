@@ -1,25 +1,29 @@
 import { BlockchainDataCollector } from '../../collectors/BlockchainDataCollector.js';
 
 /**
- * Test All 12 DGF Coins
+ * Test All 15 CFV CoinFund + Benchmark Coins
  * 
- * Comprehensive test of the BlockchainDataCollector with all 12 DGF coins.
+ * Comprehensive test of the BlockchainDataCollector with all coins.
+ * 13 CFV CoinFund coins from "Beyond Bitcoin" Chapter 27, plus BTC and ETH.
  */
 
-// All 12 DGF coins
+// All 15 coins (13 CFV CoinFund + BTC benchmark + ETH)
 const DGF_COINS = [
   { symbol: 'BTC', name: 'Bitcoin' },
   { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'DASH', name: 'Dash' },
   { symbol: 'DGB', name: 'DigiByte' },
+  { symbol: 'DASH', name: 'Digital Cash' },
+  { symbol: 'BLK', name: 'Blackcoin' },
   { symbol: 'XMR', name: 'Monero' },
-  { symbol: 'RVN', name: 'Ravencoin' },
-  { symbol: 'XCH', name: 'Chia' },
-  { symbol: 'XEC', name: 'eCash' },
   { symbol: 'XNO', name: 'Nano' },
+  { symbol: 'ZCL', name: 'ZClassic' },
+  { symbol: 'RVN', name: 'Ravencoin' },
+  { symbol: 'XEC', name: 'eCash' },
+  { symbol: 'EGLD', name: 'MultiversX' },
   { symbol: 'NEAR', name: 'NEAR Protocol' },
   { symbol: 'ICP', name: 'Internet Computer' },
-  { symbol: 'ZCL', name: 'Zclassic' }
+  { symbol: 'XCH', name: 'Chia' },
+  { symbol: 'DGD', name: 'Digital Gold' }
 ];
 
 async function delay(ms: number): Promise<void> {
@@ -27,7 +31,7 @@ async function delay(ms: number): Promise<void> {
 }
 
 async function testAllCoins() {
-  console.log('🧪 Testing All 12 DGF Coins\n');
+  console.log('🧪 Testing All 15 CFV CoinFund + Benchmark Coins\n');
   console.log('='.repeat(80) + '\n');
 
   const collector = new BlockchainDataCollector({

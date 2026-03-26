@@ -1,6 +1,7 @@
 /**
  * CFV Calculator — Digital Gold Standard Formula
- * Based on "Beyond Bitcoin: Digital Gold, Bitcoin and The Crypto Fair Value Model" by John Gotts
+ * Based on "Beyond Bitcoin: The Digital Gold Standard Benchmark & Crypto Fair Value Formula"
+ * by Sir John Wright Gotts
  *
  * The Digital Gold Standard (DGS) calculates fair value for any Layer-1 cryptocurrency
  * by measuring its fundamental metrics relative to Bitcoin's fixed December 2024 benchmark.
@@ -18,7 +19,7 @@ import type { CFVMetrics, CFVCalculation, ValuationStatus, ComponentScores } fro
 // ─────────────────────────────────────────────────────────────────────────────
 // Digital Gold Standard Benchmark (DGSB)
 // Fixed December 2024 values — never updated
-// Source: "Beyond Bitcoin" by John Gotts, Chapters 19–23
+// Source: "Beyond Bitcoin" by Sir John Wright Gotts, Chapters 19–23
 // ─────────────────────────────────────────────────────────────────────────────
 export const DGS_BENCHMARK = {
   /** Bitcoin's market capitalisation at December 2024 — the constant multiplier */

@@ -1,6 +1,7 @@
 /**
  * CFV Metrics Agent - Type Definitions
- * Based on "Beyond Bitcoin: Digital Gold, Bitcoin and The Crypto Fair Value Model" by John Gotts
+ * Based on "Beyond Bitcoin: The Digital Gold Standard Benchmark & Crypto Fair Value Formula"
+ * by Sir John Wright Gotts
  */
 
 export type MetricType =

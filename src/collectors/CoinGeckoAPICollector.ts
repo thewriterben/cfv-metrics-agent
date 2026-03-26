@@ -187,18 +187,19 @@ export class CoinGeckoAPICollector {
     const mapping: Record<string, string> = {
       'BTC': 'bitcoin',
       'ETH': 'ethereum',
-      'DASH': 'dash',
       'DGB': 'digibyte',
+      'DASH': 'dash',
+      'BLK': 'blackcoin',
       'XMR': 'monero',
-      'RVN': 'ravencoin',
-      'XCH': 'chia',
-      'XEC': 'ecash',
       'XNO': 'nano',
+      'ZCL': 'zclassic',
+      'RVN': 'ravencoin',
+      'XEC': 'ecash',
+      'EGLD': 'elrond-erd-2',
       'NEAR': 'near',
       'ICP': 'internet-computer',
-      'EGLD': 'elrond-erd-2',
-      'DGD': 'digixdao',
-      'ZCL': 'zclassic'
+      'XCH': 'chia',
+      'DGD': 'digital-gold-token'
     };
 
     return mapping[symbol.toUpperCase()] || symbol.toLowerCase();

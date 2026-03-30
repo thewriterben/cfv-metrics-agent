@@ -63,7 +63,7 @@ export class CryptoCompareCollector implements MetricCollector {
 
   private rateLimiter: RateLimiter;
   private circuitBreaker: CircuitBreaker;
-  private coalescer: RequestCoalescer<any>;
+  private coalescer: RequestCoalescer<MetricResult>;
 
   constructor(apiKey?: string, rateLimiter?: RateLimiter) {
     const headers: Record<string, string> = {};

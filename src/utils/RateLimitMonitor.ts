@@ -7,7 +7,7 @@
 
 import { logger } from './logger.js';
 
-export type MonitoredService = 'coingecko' | 'etherscan' | 'github' | 'blockchair';
+export type MonitoredService = 'coingecko' | 'etherscan' | 'github' | 'blockchair' | 'cryptocompare';
 
 export interface RateLimitMetrics {
   used: number;
@@ -69,6 +69,13 @@ export class RateLimitMonitor {
     this.metrics.set('blockchair', {
       used: 0,
       limit: parseInt(process.env.BLOCKCHAIR_RATE_LIMIT || '30'),
+      window: 60000,  // 1 minute
+      windowStart: now,
+    });
+
+    this.metrics.set('cryptocompare', {
+      used: 0,
+      limit: parseInt(process.env.CRYPTOCOMPARE_RATE_LIMIT || '50'),
       window: 60000,  // 1 minute
       windowStart: now,
     });

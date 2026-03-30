@@ -4,7 +4,7 @@ An intelligent AI agent built with GitHub Copilot SDK that gathers accurate cryp
 
 ## Features
 
-- **Multi-Source Data Collection**: Gathers metrics from CoinGecko, Etherscan, GitHub, and more
+- **Multi-Source Data Collection**: Gathers metrics from CoinGecko, Etherscan, GitHub, Blockchair, CryptoCompare, Reddit, and Twitter
 - **Rate Limiting & API Protection**: Intelligent rate limiting, circuit breakers, and request coalescing
 - **Data Validation**: Cross-validates data from multiple sources with confidence scoring
 - **Intelligent Caching**: Redis-based caching to minimize API calls and improve performance
@@ -15,6 +15,8 @@ An intelligent AI agent built with GitHub Copilot SDK that gathers accurate cryp
   - Developers (10%)
 - **Composite Community Scoring**: Weights on-chain activity (50%) > GitHub contributions (30%) > social metrics (20%) to prevent gaming
 - **Valuation Analysis**: Compares current price with fair value to determine if undervalued/overvalued
+- **Enhanced Validation**: Rate-of-change detection, source diversity scoring, and weighted temporal decay
+- **Historical Analysis**: Trend analysis, moving averages, volatility tracking, and anomaly detection
 - **Extensible Architecture**: Easy to add new data collectors and metrics
 
 ## Architecture
@@ -22,13 +24,25 @@ An intelligent AI agent built with GitHub Copilot SDK that gathers accurate cryp
 ```
 CFV Metrics Agent
 ├── Collectors (Data Sources)
-│   ├── CoinGeckoCollector (Primary)
-│   ├── EtherscanCollector (Blockchain Data)
-│   └── GitHubCollector (Developer Metrics)
+│   ├── CoinGeckoCollector (Primary - Market Data)
+│   ├── EtherscanCollector (Primary - Ethereum Blockchain)
+│   ├── GitHubCollector (Secondary - Developer Metrics)
+│   ├── BlockchairCollector (Secondary - Multi-chain Blockchain)
+│   ├── CryptoCompareCollector (Secondary - Market Data)
+│   ├── RedditCollector (Fallback - Social Metrics)
+│   └── TwitterCollector (Fallback - Social Metrics)
 ├── Validation Engine
 │   ├── Cross-Source Validation
 │   ├── Confidence Scoring
-│   └── Outlier Detection
+│   ├── Outlier Detection
+│   ├── Rate-of-Change Detection
+│   ├── Source Diversity Scoring
+│   └── Weighted Temporal Decay
+├── Historical Analyzer
+│   ├── Trend Analysis (Linear Regression)
+│   ├── Moving Averages (SMA/EMA)
+│   ├── Volatility Tracking
+│   └── Anomaly Detection
 ├── CFV Calculator
 │   └── 70/10/10/10 Formula Implementation
 └── Cache Manager
@@ -540,19 +554,19 @@ npm test
 
 ## Roadmap
 
-### Phase 1 (Current)
+### Phase 1 (Complete)
 - ✅ Core agent implementation
 - ✅ CoinGecko, Etherscan, GitHub collectors
 - ✅ Data validation and caching
 - ✅ CLI interface
 
-### Phase 2 (Next)
-- [ ] Additional blockchain explorers (Blockchair, CryptoCompare)
-- [ ] Social media collectors (Twitter API, Reddit API)
-- [ ] Enhanced validation algorithms
-- [ ] Historical data analysis
+### Phase 2 (Current)
+- ✅ Additional blockchain explorers (Blockchair, CryptoCompare)
+- ✅ Social media collectors (Twitter API, Reddit API)
+- ✅ Enhanced validation algorithms (rate-of-change detection, source diversity scoring, weighted temporal decay)
+- ✅ Historical data analysis (trend analysis, moving averages, volatility tracking, anomaly detection)
 
-### Phase 3
+### Phase 3 (Next)
 - [ ] Machine learning for anomaly detection
 - [ ] Predictive analytics
 - [ ] Sentiment analysis integration

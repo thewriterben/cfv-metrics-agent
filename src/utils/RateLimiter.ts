@@ -8,7 +8,7 @@ import { logger } from './logger.js';
  * with service-specific configurations.
  */
 
-export type ServiceName = 'coingecko' | 'etherscan' | 'github';
+export type ServiceName = 'coingecko' | 'etherscan' | 'github' | 'blockchair';
 
 export interface RateLimiterConfig {
   maxConcurrent: number;
@@ -39,6 +39,12 @@ export class RateLimiter {
       minTime: 720,         // ~5000 per hour
       reservoir: 5000,
       reservoirRefreshInterval: 3600000
+    },
+    blockchair: {
+      maxConcurrent: 2,
+      minTime: 2000,        // 2 seconds between requests (30 calls/min)
+      reservoir: 30,
+      reservoirRefreshInterval: 60000
     }
   };
 

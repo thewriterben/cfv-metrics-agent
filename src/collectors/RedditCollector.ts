@@ -69,7 +69,7 @@ export class RedditCollector implements MetricCollector {
     this.circuitBreaker = new CircuitBreaker();
     this.coalescer = new RequestCoalescer(coalescerTTL);
 
-    // 10 requests per minute: minTime 6 000 ms, reservoir 10, refresh every 60 s
+    // 10 requests per minute: minTime 6000ms, reservoir 10, refresh every 60s
     this.limiter = new Bottleneck({
       maxConcurrent: 1,
       minTime: 6000,

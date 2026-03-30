@@ -48,6 +48,16 @@ export interface SourceDiversityScore {
 }
 
 export class UnifiedValidationEngine {
+  // Source priority weights for value selection
+  private static readonly PRIMARY_SOURCE_WEIGHT = 1.5;
+  private static readonly SECONDARY_SOURCE_WEIGHT = 1.2;
+  private static readonly PRIMARY_SOURCES = ['CoinGecko', 'Etherscan', '3xpl'];
+  private static readonly SECONDARY_SOURCES = ['Blockchair', 'CryptoCompare'];
+
+  // Temporal decay parameters
+  private static readonly TEMPORAL_HALF_LIFE_HOURS = 12;
+  private static readonly MIN_TEMPORAL_WEIGHT = 0.1;
+
   /**
    * Validate and aggregate multiple metric results from different sources
    * Combines logic from original ValidationEngine
@@ -346,17 +356,16 @@ export class UnifiedValidationEngine {
       if (r.confidence === 'HIGH') weight = 3;
       else if (r.confidence === 'MEDIUM') weight = 2;
       
-      // Exponential temporal decay: half-life of 12 hours (Phase 2 enhancement)
+      // Exponential temporal decay (Phase 2 enhancement)
       const ageHours = (now - r.timestamp.getTime()) / (1000 * 60 * 60);
-      const halfLife = 12;
-      const decayFactor = Math.pow(0.5, ageHours / halfLife);
-      weight *= Math.max(decayFactor, 0.1); // Floor at 10% weight
+      const decayFactor = Math.pow(0.5, ageHours / this.TEMPORAL_HALF_LIFE_HOURS);
+      weight *= Math.max(decayFactor, this.MIN_TEMPORAL_WEIGHT);
       
       // Source type bonus (Phase 2: reward diverse source types)
-      if (r.source === 'CoinGecko' || r.source === 'Etherscan' || r.source === '3xpl') {
-        weight *= 1.5; // Primary sources get 50% bonus
-      } else if (r.source === 'Blockchair' || r.source === 'CryptoCompare') {
-        weight *= 1.2; // Secondary sources get 20% bonus
+      if (this.PRIMARY_SOURCES.includes(r.source)) {
+        weight *= this.PRIMARY_SOURCE_WEIGHT;
+      } else if (this.SECONDARY_SOURCES.includes(r.source)) {
+        weight *= this.SECONDARY_SOURCE_WEIGHT;
       }
       
       return weight;

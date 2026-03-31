@@ -3,6 +3,10 @@ import { logger } from './utils/logger.js';
 import { CoinGeckoCollector } from './collectors/CoinGeckoCollector';
 import { EtherscanCollector } from './collectors/EtherscanCollector';
 import { GitHubCollector } from './collectors/GitHubCollector';
+import { BlockchairCollector } from './collectors/BlockchairCollector';
+import { CryptoCompareCollector } from './collectors/CryptoCompareCollector';
+import { RedditCollector } from './collectors/RedditCollector';
+import { TwitterCollector } from './collectors/TwitterCollector';
 import { ValidationEngine } from './validators/ValidationEngine';
 import { CFVCalculator } from './utils/CFVCalculator';
 import { CacheManager } from './utils/CacheManager';
@@ -44,6 +48,7 @@ export class CFVAgent {
     };
     
     // Initialize collectors
+    // Phase 1: Primary collectors
     this.collectors = [
       new CoinGeckoCollector(this.config.coinGeckoApiKey),
       new EtherscanCollector(
@@ -53,6 +58,12 @@ export class CFVAgent {
         this.config.coinGeckoApiKey
       ),
       new GitHubCollector(this.config.githubToken),
+      // Phase 2: Additional blockchain explorers
+      new BlockchairCollector(process.env.BLOCKCHAIR_API_KEY),
+      new CryptoCompareCollector(process.env.CRYPTOCOMPARE_API_KEY),
+      // Phase 2: Social media collectors
+      new RedditCollector(),
+      new TwitterCollector(process.env.TWITTER_BEARER_TOKEN),
     ];
     
     // Initialize cache

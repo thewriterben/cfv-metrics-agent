@@ -8,6 +8,9 @@
  * - Multiple MetricResults from different sources (aggregation)
  * - Individual TransactionMetrics (quality checks)
  * - Cross-source validation
+ * - Rate-of-change detection (Phase 2)
+ * - Source diversity scoring (Phase 2)
+ * - Weighted temporal decay (Phase 2)
  */
 
 import type { 
@@ -30,7 +33,31 @@ export interface CrossValidationResult {
   sources: number;
 }
 
+export interface RateOfChangeResult {
+  changePercent: number;
+  isSignificant: boolean;
+  direction: 'increasing' | 'decreasing' | 'stable';
+  severity: 'normal' | 'notable' | 'extreme';
+}
+
+export interface SourceDiversityScore {
+  score: number;           // 0-100
+  uniqueSources: number;
+  sourceTypes: string[];   // e.g., ['api', 'blockchain', 'social']
+  recommendation: string;
+}
+
 export class UnifiedValidationEngine {
+  // Source priority weights for value selection
+  private static readonly PRIMARY_SOURCE_WEIGHT = 1.5;
+  private static readonly SECONDARY_SOURCE_WEIGHT = 1.2;
+  private static readonly PRIMARY_SOURCES = ['CoinGecko', 'Etherscan', '3xpl'];
+  private static readonly SECONDARY_SOURCES = ['Blockchair', 'CryptoCompare'];
+
+  // Temporal decay parameters
+  private static readonly TEMPORAL_HALF_LIFE_HOURS = 12;
+  private static readonly MIN_TEMPORAL_WEIGHT = 0.1;
+
   /**
    * Validate and aggregate multiple metric results from different sources
    * Combines logic from original ValidationEngine
@@ -315,21 +342,31 @@ export class UnifiedValidationEngine {
 
   /**
    * Select best value from multiple results
-   * Weighted by confidence and recency
+   * Weighted by confidence, recency, and temporal decay (Phase 2 enhanced)
    */
   private static selectBestValue(results: MetricResult[]): number {
     if (results.length === 0) return 0;
     if (results.length === 1) return results[0].value;
     
-    // Weight by confidence
+    const now = Date.now();
+    
+    // Weight by confidence with exponential temporal decay (Phase 2)
     const weights = results.map(r => {
       let weight = 1;
       if (r.confidence === 'HIGH') weight = 3;
       else if (r.confidence === 'MEDIUM') weight = 2;
       
-      // Bonus for recency (last 24 hours)
-      const age = Date.now() - r.timestamp.getTime();
-      if (age < 86400000) weight *= 1.2; // 24 hours
+      // Exponential temporal decay (Phase 2 enhancement)
+      const ageHours = (now - r.timestamp.getTime()) / (1000 * 60 * 60);
+      const decayFactor = Math.pow(0.5, ageHours / this.TEMPORAL_HALF_LIFE_HOURS);
+      weight *= Math.max(decayFactor, this.MIN_TEMPORAL_WEIGHT);
+      
+      // Source type bonus (Phase 2: reward diverse source types)
+      if (this.PRIMARY_SOURCES.includes(r.source)) {
+        weight *= this.PRIMARY_SOURCE_WEIGHT;
+      } else if (this.SECONDARY_SOURCES.includes(r.source)) {
+        weight *= this.SECONDARY_SOURCE_WEIGHT;
+      }
       
       return weight;
     });
@@ -338,5 +375,200 @@ export class UnifiedValidationEngine {
     const weightedSum = results.reduce((sum, r, i) => sum + r.value * weights[i], 0);
     
     return weightedSum / totalWeight;
+  }
+
+  // ============================================================
+  // Phase 2: Enhanced Validation Methods
+  // ============================================================
+
+  /**
+   * Detect rate of change between current and previous metric value
+   * Flags significant changes that may indicate data quality issues or real events
+   */
+  static detectRateOfChange(
+    currentValue: number,
+    previousValue: number,
+    metricType?: string
+  ): RateOfChangeResult {
+    if (previousValue === 0) {
+      return {
+        changePercent: currentValue > 0 ? 100 : 0,
+        isSignificant: currentValue > 0,
+        direction: currentValue > 0 ? 'increasing' : 'stable',
+        severity: currentValue > 0 ? 'notable' : 'normal',
+      };
+    }
+
+    const changePercent = ((currentValue - previousValue) / previousValue) * 100;
+    const absChange = Math.abs(changePercent);
+
+    // Thresholds vary by metric type
+    const thresholds = this.getChangeThresholds(metricType);
+
+    let direction: 'increasing' | 'decreasing' | 'stable';
+    if (changePercent > thresholds.stableThreshold) direction = 'increasing';
+    else if (changePercent < -thresholds.stableThreshold) direction = 'decreasing';
+    else direction = 'stable';
+
+    let severity: 'normal' | 'notable' | 'extreme';
+    if (absChange > thresholds.extremeThreshold) severity = 'extreme';
+    else if (absChange > thresholds.notableThreshold) severity = 'notable';
+    else severity = 'normal';
+
+    return {
+      changePercent,
+      isSignificant: absChange > thresholds.notableThreshold,
+      direction,
+      severity,
+    };
+  }
+
+  /**
+   * Get change thresholds based on metric type
+   * Different metrics have different expected variability
+   */
+  private static getChangeThresholds(metricType?: string): {
+    stableThreshold: number;
+    notableThreshold: number;
+    extremeThreshold: number;
+  } {
+    switch (metricType) {
+      case 'price':
+        // Prices can be volatile
+        return { stableThreshold: 5, notableThreshold: 20, extremeThreshold: 50 };
+      case 'adoption':
+        // Adoption changes slowly
+        return { stableThreshold: 2, notableThreshold: 10, extremeThreshold: 30 };
+      case 'developers':
+        // Developer counts are relatively stable
+        return { stableThreshold: 5, notableThreshold: 25, extremeThreshold: 50 };
+      case 'annualTransactions':
+      case 'annualTransactionValue':
+        // Transaction metrics can vary moderately
+        return { stableThreshold: 5, notableThreshold: 30, extremeThreshold: 100 };
+      default:
+        return { stableThreshold: 5, notableThreshold: 25, extremeThreshold: 50 };
+    }
+  }
+
+  /**
+   * Calculate source diversity score
+   * Higher scores indicate more diverse and reliable data collection
+   */
+  static calculateSourceDiversity(results: MetricResult[]): SourceDiversityScore {
+    if (results.length === 0) {
+      return {
+        score: 0,
+        uniqueSources: 0,
+        sourceTypes: [],
+        recommendation: 'No data sources available. Add at least one collector.',
+      };
+    }
+
+    const uniqueSources = new Set(results.map(r => r.source));
+    const sourceTypes = new Set<string>();
+
+    // Classify sources by type
+    for (const source of uniqueSources) {
+      if (['CoinGecko', 'CryptoCompare'].includes(source)) {
+        sourceTypes.add('api');
+      } else if (['Etherscan', '3xpl', 'Blockchair'].includes(source)) {
+        sourceTypes.add('blockchain');
+      } else if (['Reddit', 'Twitter'].includes(source)) {
+        sourceTypes.add('social');
+      } else if (['GitHub'].includes(source)) {
+        sourceTypes.add('developer');
+      } else {
+        sourceTypes.add('other');
+      }
+    }
+
+    // Score calculation (max 100)
+    let score = 0;
+
+    // Source count component (max 40)
+    score += Math.min(uniqueSources.size * 10, 40);
+
+    // Source type diversity (max 40)
+    score += Math.min(sourceTypes.size * 15, 40);
+
+    // Confidence diversity bonus (max 20)
+    const confidenceLevels = new Set(results.map(r => r.confidence));
+    const hasHighConfidence = results.some(r => r.confidence === 'HIGH');
+    if (hasHighConfidence) score += 10;
+    if (confidenceLevels.size >= 2) score += 10;
+
+    score = Math.min(score, 100);
+
+    // Generate recommendation
+    let recommendation: string;
+    if (score >= 80) {
+      recommendation = 'Excellent source diversity. Data is well-corroborated.';
+    } else if (score >= 60) {
+      recommendation = 'Good source diversity. Consider adding blockchain-specific sources for higher confidence.';
+    } else if (score >= 40) {
+      recommendation = 'Moderate source diversity. Add sources from different categories (API, blockchain, social).';
+    } else {
+      recommendation = 'Low source diversity. Data relies on too few sources. Add more collectors for reliability.';
+    }
+
+    return {
+      score,
+      uniqueSources: uniqueSources.size,
+      sourceTypes: Array.from(sourceTypes),
+      recommendation,
+    };
+  }
+
+  /**
+   * Enhanced metric validation with Phase 2 improvements
+   * Combines basic validation with rate-of-change and source diversity checks
+   */
+  static validateMetricWithHistory(
+    results: MetricResult[],
+    previousValue?: number,
+    metricType?: string
+  ): ValidationResult & {
+    rateOfChange?: RateOfChangeResult;
+    sourceDiversity: SourceDiversityScore;
+  } {
+    // Base validation
+    const baseValidation = this.validateMetricResults(results);
+    
+    // Source diversity analysis
+    const sourceDiversity = this.calculateSourceDiversity(results);
+    
+    // Rate of change detection (if previous value available)
+    let rateOfChange: RateOfChangeResult | undefined;
+    if (previousValue !== undefined && baseValidation.adjustedValue !== undefined) {
+      rateOfChange = this.detectRateOfChange(
+        baseValidation.adjustedValue,
+        previousValue,
+        metricType
+      );
+      
+      // Adjust confidence if extreme change detected
+      if (rateOfChange.severity === 'extreme') {
+        baseValidation.issues.push(
+          `Extreme change detected: ${rateOfChange.changePercent.toFixed(1)}% ${rateOfChange.direction}`
+        );
+        // Downgrade confidence for extreme changes
+        if (baseValidation.confidence === 'HIGH') {
+          baseValidation.confidence = 'MEDIUM';
+        }
+      }
+    }
+    
+    // Adjust confidence based on source diversity
+    if (sourceDiversity.score < 30 && baseValidation.confidence === 'HIGH') {
+      baseValidation.confidence = 'MEDIUM';
+      baseValidation.issues.push('Low source diversity may reduce reliability');
+    }
+
+    return {
+      ...baseValidation,
+      rateOfChange,
+      sourceDiversity,
+    };
   }
 }

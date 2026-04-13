@@ -10,6 +10,13 @@ import { TwitterCollector } from './collectors/TwitterCollector';
 import { ValidationEngine } from './validators/ValidationEngine';
 import { CFVCalculator } from './utils/CFVCalculator';
 import { CacheManager } from './utils/CacheManager';
+// Phase 3 imports
+import { AnomalyDetector } from './ml/AnomalyDetector.js';
+import { PredictiveAnalyzer } from './ml/PredictiveAnalyzer.js';
+import { SentimentAnalyzer } from './ml/SentimentAnalyzer.js';
+import { StreamingEngine } from './streaming/StreamingEngine.js';
+import type { HistoricalDataPoint } from './utils/HistoricalAnalyzer.js';
+import type { TextItem, AnomalyScore, ForecastResult, SentimentScore } from './ml/types.js';
 import type {
   MetricCollector,
   MetricType,
@@ -24,6 +31,12 @@ export class CFVAgent {
   private cache: CacheManager;
   private config: AgentConfig;
   private copilot?: CopilotClient;
+  
+  // Phase 3: ML & streaming components
+  private anomalyDetectors: Map<string, AnomalyDetector> = new Map();
+  private predictiveAnalyzers: Map<string, PredictiveAnalyzer> = new Map();
+  private sentimentAnalyzer: SentimentAnalyzer;
+  private streamingEngine: StreamingEngine;
   
   constructor(config: Partial<AgentConfig> = {}) {
     this.config = {
@@ -68,6 +81,10 @@ export class CFVAgent {
     
     // Initialize cache
     this.cache = new CacheManager(this.config.redisUrl, this.config.cacheTTL);
+    
+    // Phase 3: Initialize ML & streaming components
+    this.sentimentAnalyzer = new SentimentAnalyzer();
+    this.streamingEngine = new StreamingEngine();
   }
   
   /**
@@ -321,10 +338,143 @@ export class CFVAgent {
     return output;
   }
   
+  // ── Phase 3: ML Anomaly Detection ─────────────────────────────────────────
+  
+  /**
+   * Run anomaly detection on a metric value using trained ML models.
+   * Automatically trains the detector on first call with available history.
+   */
+  async detectAnomaly(
+    coinSymbol: string,
+    metricName: string,
+    value: number,
+    history?: HistoricalDataPoint[],
+  ): Promise<AnomalyScore> {
+    const key = `${coinSymbol}:${metricName}`;
+    
+    if (!this.anomalyDetectors.has(key)) {
+      const detector = new AnomalyDetector();
+      if (history && history.length >= 2) {
+        detector.train(history);
+      }
+      this.anomalyDetectors.set(key, detector);
+    }
+    
+    const detector = this.anomalyDetectors.get(key)!;
+    const result = detector.detect(value);
+    
+    // Emit anomaly alert via streaming engine if detected
+    if (result.isAnomaly) {
+      logger.warn(`Anomaly detected for ${coinSymbol}:${metricName}`, {
+        score: result.score,
+        severity: result.severity,
+        reasons: result.reasons,
+      });
+      this.streamingEngine.emitAnomalyAlert(
+        coinSymbol,
+        metricName,
+        result.score,
+        result.severity,
+        result.reasons,
+      );
+    }
+    
+    return result;
+  }
+  
+  // ── Phase 3: Predictive Analytics ───────────────────────────────────────────
+  
+  /**
+   * Generate predictions for a metric using trained time-series models.
+   */
+  async generatePrediction(
+    coinSymbol: string,
+    metricName: string,
+    history: HistoricalDataPoint[],
+    horizons?: number[],
+  ): Promise<ForecastResult> {
+    const key = `${coinSymbol}:${metricName}`;
+    
+    if (!this.predictiveAnalyzers.has(key)) {
+      this.predictiveAnalyzers.set(key, new PredictiveAnalyzer());
+    }
+    
+    const analyzer = this.predictiveAnalyzers.get(key)!;
+    analyzer.train(history);
+    const forecast = analyzer.generateForecast(horizons);
+    
+    // Emit prediction via streaming engine
+    this.streamingEngine.emitPredictionUpdate(coinSymbol, metricName, {
+      value: forecast.ensemble.value,
+      lowerBound: forecast.ensemble.lowerBound,
+      upperBound: forecast.ensemble.upperBound,
+      horizonHours: forecast.ensemble.horizonHours,
+    });
+    
+    logger.info(`Prediction for ${coinSymbol}:${metricName}`, {
+      trend: forecast.trend,
+      ensembleValue: forecast.ensemble.value,
+      confidence: forecast.ensemble.confidence,
+    });
+    
+    return forecast;
+  }
+  
+  // ── Phase 3: Sentiment Analysis ─────────────────────────────────────────────
+  
+  /**
+   * Analyse sentiment from social media text items for a coin.
+   */
+  analyzeSentiment(coinSymbol: string, items: TextItem[]): SentimentScore {
+    const result = this.sentimentAnalyzer.analyze(items);
+    
+    // Emit sentiment update via streaming engine
+    this.streamingEngine.emitSentimentUpdate(
+      coinSymbol,
+      result.score,
+      result.label,
+      result.sampleSize,
+    );
+    
+    logger.info(`Sentiment for ${coinSymbol}`, {
+      score: result.score,
+      label: result.label,
+      sampleSize: result.sampleSize,
+    });
+    
+    return result;
+  }
+  
+  // ── Phase 3: Streaming Engine ───────────────────────────────────────────────
+  
+  /**
+   * Get the streaming engine for subscribing to real-time events.
+   */
+  getStreamingEngine(): StreamingEngine {
+    return this.streamingEngine;
+  }
+  
+  /**
+   * Start real-time streaming of metrics, anomalies, and predictions.
+   */
+  startStreaming(): void {
+    this.streamingEngine.start();
+    logger.info('Real-time streaming started');
+  }
+  
+  /**
+   * Stop real-time streaming.
+   */
+  stopStreaming(): void {
+    this.streamingEngine.stop();
+    logger.info('Real-time streaming stopped');
+  }
+  
   /**
    * Close agent and cleanup resources
    */
   async close(): Promise<void> {
+    this.streamingEngine.stop();
     await this.cache.close();
   }
 }

@@ -17,6 +17,10 @@ An intelligent AI agent built with GitHub Copilot SDK that gathers accurate cryp
 - **Valuation Analysis**: Compares current price with fair value to determine if undervalued/overvalued
 - **Enhanced Validation**: Rate-of-change detection, source diversity scoring, and weighted temporal decay
 - **Historical Analysis**: Trend analysis, moving averages, volatility tracking, and anomaly detection
+- **ML Anomaly Detection**: Ensemble detector (EWMA, Isolation Forest, correlation analysis)
+- **Predictive Analytics**: Holt-Winters exponential smoothing, linear regression, ensemble forecasting
+- **Sentiment Analysis**: Crypto-specific lexicon-based sentiment scoring with temporal decay
+- **Real-time Streaming**: Event-driven pipeline with backpressure, configurable intervals, and subscriber pattern
 - **Extensible Architecture**: Easy to add new data collectors and metrics
 
 ## Architecture
@@ -43,6 +47,15 @@ CFV Metrics Agent
 │   ├── Moving Averages (SMA/EMA)
 │   ├── Volatility Tracking
 │   └── Anomaly Detection
+├── ML Analytics (Phase 3)
+│   ├── Anomaly Detector (EWMA + Isolation Forest + Correlation)
+│   ├── Predictive Analyzer (Holt-Winters + Linear Regression)
+│   └── Sentiment Analyzer (Crypto Lexicon + Temporal Decay)
+├── Streaming Engine (Phase 3)
+│   ├── Event-Driven Pipeline
+│   ├── Configurable Intervals
+│   ├── Backpressure Handling
+│   └── Subscriber Pattern
 ├── CFV Calculator
 │   └── 70/10/10/10 Formula Implementation
 └── Cache Manager
@@ -560,19 +573,19 @@ npm test
 - ✅ Data validation and caching
 - ✅ CLI interface
 
-### Phase 2 (Current)
+### Phase 2 (Complete)
 - ✅ Additional blockchain explorers (Blockchair, CryptoCompare)
 - ✅ Social media collectors (Twitter API, Reddit API)
 - ✅ Enhanced validation algorithms (rate-of-change detection, source diversity scoring, weighted temporal decay)
 - ✅ Historical data analysis (trend analysis, moving averages, volatility tracking, anomaly detection)
 
-### Phase 3 (Next)
-- [ ] Machine learning for anomaly detection
-- [ ] Predictive analytics
-- [ ] Sentiment analysis integration
-- [ ] Real-time streaming data
+### Phase 3 (Complete)
+- ✅ Machine learning for anomaly detection (EWMA, Isolation Forest, correlation analysis ensemble)
+- ✅ Predictive analytics (Holt-Winters exponential smoothing, linear regression, ensemble forecasting)
+- ✅ Sentiment analysis integration (crypto-specific lexicon, temporal decay, category breakdown)
+- ✅ Real-time streaming data (event-driven pipeline, backpressure, configurable intervals)
 
-### Phase 4
+### Phase 4 (Next)
 - [ ] Web API for third-party integrations
 - [ ] Dashboard UI
 - [ ] Multi-chain support expansion

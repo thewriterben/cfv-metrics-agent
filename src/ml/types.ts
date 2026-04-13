@@ -95,7 +95,7 @@ export interface SentimentScore {
   label: 'very_negative' | 'negative' | 'neutral' | 'positive' | 'very_positive';
   /** Magnitude/intensity (0–1) */
   magnitude: number;
-  /** Number of text items analysed */
+  /** Number of text items analyzed */
   sampleSize: number;
   /** Individual category breakdowns */
   categories: SentimentCategories;

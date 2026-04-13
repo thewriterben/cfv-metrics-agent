@@ -45,7 +45,7 @@ export class HoltSmoother {
       (a, b) => a.timestamp.getTime() - b.timestamp.getTime(),
     );
 
-    // Initialise level and trend from first two points
+    // Initialize level and trend from first two points
     this.level = sorted[0].value;
     this.trend = sorted[1].value - sorted[0].value;
 

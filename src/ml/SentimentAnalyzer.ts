@@ -174,7 +174,7 @@ export class SentimentAnalyzer {
   }
 
   /**
-   * Analyse a single text string and return a sentiment score.
+   * Analyze a single text string and return a sentiment score.
    */
   analyzeText(text: string): {
     score: number;
@@ -263,7 +263,7 @@ export class SentimentAnalyzer {
   }
 
   /**
-   * Analyse multiple text items and produce an aggregate sentiment score.
+   * Analyze multiple text items and produce an aggregate sentiment score.
    * More recent and higher-weighted items have greater influence.
    */
   analyze(items: TextItem[]): SentimentScore {

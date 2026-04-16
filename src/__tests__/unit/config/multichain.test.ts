@@ -56,7 +56,9 @@ describe('blockchainConfig Phase 4 additions', () => {
   it('should calculate daysLive for DGD correctly', () => {
     const ref = new Date('2020-03-30');
     const days = calculateDaysLive('DGD', ref);
-    // 4 years from 2016-03-30 to 2020-03-30 = 1461 days (leap year 2020)
+    // 4 years from 2016-03-30 to 2020-03-30.
+    // Feb 29 2016 precedes the start date (2016-03-30), so not counted.
+    // Feb 29 2020 precedes the end date (2020-03-30), so it IS counted: 4×365+1 = 1461 days.
     expect(days).toBe(1461);
   });
 

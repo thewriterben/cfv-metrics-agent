@@ -49,6 +49,7 @@ export class APIServer {
   private config: APIServerConfig;
   private healthChecker: HealthChecker;
   private rateLimitMonitor: RateLimitMonitor;
+  private apiLimiter!: express.RequestHandler;
 
 
   constructor(config: APIServerConfig) {
@@ -133,7 +134,7 @@ export class APIServer {
     });
 
     // General API rate limiter
-    const apiLimiter = rateLimit({
+    this.apiLimiter = rateLimit({
       windowMs: parseInt(process.env.RATE_LIMIT_API_WINDOW_MS || '900000'), // 15 minutes
       max: parseInt(process.env.RATE_LIMIT_API_MAX_REQUESTS || '100'), // 100 requests per window
       standardHeaders: true,
@@ -152,7 +153,7 @@ export class APIServer {
     });
 
     // Apply general rate limiter to all API routes
-    this.app.use('/api/', apiLimiter);
+    this.app.use('/api/', this.apiLimiter);
   }
 
   /**
@@ -164,8 +165,8 @@ export class APIServer {
     const publicDir = path.join(__dirname, '../public');
     this.app.use(express.static(publicDir));
 
-    // Serve dashboard HTML at /dashboard
-    this.app.get('/dashboard', (req, res) => {
+    // Serve dashboard HTML at /dashboard (rate-limited along with /api/ routes via middleware)
+    this.app.get('/dashboard', this.apiLimiter, (req, res) => {
       res.sendFile(path.join(publicDir, 'dashboard.html'));
     });
 

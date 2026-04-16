@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CFV Metrics Agent — Dashboard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --border: #2a2d3e;
+      --accent: #6c63ff;
+      --accent2: #00d4aa;
+      --text: #e2e8f0;
+      --muted: #8892a4;
+      --green: #22c55e;
+      --yellow: #eab308;
+      --red: #ef4444;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 1rem 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    header h1 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: -0.02em;
+    }
+
+    header span { font-size: 0.8rem; color: var(--muted); }
+
+    #health-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .main { max-width: 1200px; margin: 0 auto; padding: 2rem 1.5rem; }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1.25rem 1.5rem;
+    }
+
+    .card-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .card-value {
+      font-size: 1.75rem;
+      font-weight: 700;
+      color: var(--text);
+      line-height: 1;
+    }
+
+    .card-sub { font-size: 0.78rem; color: var(--muted); margin-top: 0.25rem; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    th {
+      text-align: left;
+      padding: 0.6rem 0.75rem;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      border-bottom: 1px solid var(--border);
+    }
+
+    td {
+      padding: 0.65rem 0.75rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+
+    tr:last-child td { border-bottom: none; }
+
+    tr:hover td { background: rgba(108, 99, 255, 0.04); }
+
+    .symbol {
+      font-weight: 700;
+      color: var(--accent);
+      font-size: 0.9rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.7rem;
+      font-weight: 600;
+    }
+
+    .badge-HIGH   { background: rgba(34,197,94,.15);  color: var(--green);  }
+    .badge-MEDIUM { background: rgba(234,179,8,.15);  color: var(--yellow); }
+    .badge-LOW    { background: rgba(239,68,68,.15);  color: var(--red);    }
+
+    .section-title {
+      font-size: 1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .section { margin-bottom: 2rem; }
+
+    .no-data { color: var(--muted); font-style: italic; text-align: center; padding: 2rem; }
+
+    #error-banner {
+      background: rgba(239,68,68,.1);
+      border: 1px solid rgba(239,68,68,.3);
+      border-radius: var(--radius);
+      padding: 1rem 1.5rem;
+      margin-bottom: 1.5rem;
+      color: var(--red);
+      display: none;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .dot-green  { background: var(--green); }
+    .dot-yellow { background: var(--yellow); }
+    .dot-red    { background: var(--red); }
+
+    .refresh-btn {
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 0.4rem 0.9rem;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      cursor: pointer;
+      transition: opacity 0.15s;
+    }
+    .refresh-btn:hover { opacity: 0.85; }
+    .refresh-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .uptime { color: var(--accent2); font-weight: 600; }
+
+    @media (max-width: 640px) {
+      .main { padding: 1rem; }
+      table { font-size: 0.78rem; }
+    }
+  </style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>CFV Metrics Agent</h1>
+    <span>Crypto Fair Value Dashboard</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:0.75rem;">
+    <span id="health-badge">Loading…</span>
+    <button class="refresh-btn" id="refresh-btn" onclick="loadAll()">↺ Refresh</button>
+  </div>
+</header>
+
+<div class="main">
+  <div id="error-banner"></div>
+
+  <!-- Summary cards -->
+  <div class="grid-3" id="summary-cards">
+    <div class="card">
+      <div class="card-title">Total Coins Tracked</div>
+      <div class="card-value" id="stat-total">—</div>
+      <div class="card-sub">Active in database</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Coins With Data</div>
+      <div class="card-value" id="stat-with-data">—</div>
+      <div class="card-sub">Latest metrics available</div>
+    </div>
+    <div class="card">
+      <div class="card-title">High Confidence</div>
+      <div class="card-value" id="stat-high-conf">—</div>
+      <div class="card-sub">HIGH confidence readings</div>
+    </div>
+    <div class="card">
+      <div class="card-title">Server Uptime</div>
+      <div class="card-value uptime" id="stat-uptime">—</div>
+      <div class="card-sub">Since last restart</div>
+    </div>
+  </div>
+
+  <!-- Latest Metrics -->
+  <div class="section">
+    <div class="section-title">Latest CFV Metrics</div>
+    <div class="card" style="overflow-x:auto;">
+      <table id="metrics-table">
+        <thead>
+          <tr>
+            <th>Symbol</th>
+            <th>Name</th>
+            <th>Annual TX Count</th>
+            <th>Annual TX Value</th>
+            <th>Avg TX Value</th>
+            <th>Confidence</th>
+            <th>Collected</th>
+          </tr>
+        </thead>
+        <tbody id="metrics-body">
+          <tr><td colspan="7" class="no-data">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Rate Limits -->
+  <div class="section">
+    <div class="section-title">API Rate Limits</div>
+    <div class="card" style="overflow-x:auto;">
+      <table id="rate-table">
+        <thead>
+          <tr>
+            <th>Service</th>
+            <th>Used</th>
+            <th>Limit</th>
+            <th>Remaining</th>
+            <th>Usage %</th>
+            <th>Resets At</th>
+          </tr>
+        </thead>
+        <tbody id="rate-body">
+          <tr><td colspan="6" class="no-data">Loading…</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- System Health -->
+  <div class="section">
+    <div class="section-title">System Health</div>
+    <div class="grid-3" id="health-cards">
+      <div class="card">
+        <div class="card-title">Database</div>
+        <div class="card-value" id="health-db">—</div>
+      </div>
+      <div class="card">
+        <div class="card-title">System</div>
+        <div class="card-value" id="health-sys">—</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function fmt(n) {
+    if (n == null) return '—';
+    if (n >= 1e12) return '$' + (n / 1e12).toFixed(2) + 'T';
+    if (n >= 1e9)  return '$' + (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6)  return '$' + (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3)  return '$' + (n / 1e3).toFixed(2) + 'K';
+    return '$' + Number(n).toFixed(2);
+  }
+
+  function fmtCount(n) {
+    if (n == null) return '—';
+    if (n >= 1e9) return (n / 1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return (n / 1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return (n / 1e3).toFixed(2) + 'K';
+    return n;
+  }
+
+  function fmtUptime(s) {
+    const d = Math.floor(s / 86400), h = Math.floor((s % 86400) / 3600),
+          m = Math.floor((s % 3600) / 60);
+    if (d) return d + 'd ' + h + 'h';
+    if (h) return h + 'h ' + m + 'm';
+    return m + 'm ' + Math.floor(s % 60) + 's';
+  }
+
+  function statusDot(status) {
+    const cls = status === 'healthy' ? 'green' : status === 'degraded' ? 'yellow' : 'red';
+    return '<span class="dot dot-' + cls + '"></span>' + status;
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('error-banner');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  async function loadMetrics() {
+    try {
+      const r = await fetch('/api/metrics');
+      const d = await r.json();
+      const tbody = document.getElementById('metrics-body');
+      if (!d.success || !d.data.length) {
+        tbody.innerHTML = '<tr><td colspan="7" class="no-data">No metrics collected yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.data.map(m => `
+        <tr>
+          <td class="symbol">${m.symbol || '—'}</td>
+          <td>${m.name || '—'}</td>
+          <td>${fmtCount(m.annual_tx_count)}</td>
+          <td>${fmt(m.annual_tx_value)}</td>
+          <td>${m.avg_tx_value != null ? fmt(m.avg_tx_value) : '—'}</td>
+          <td><span class="badge badge-${m.confidence_level}">${m.confidence_level}</span></td>
+          <td>${m.collected_at ? new Date(m.collected_at).toLocaleString() : '—'}</td>
+        </tr>`).join('');
+    } catch(e) {
+      document.getElementById('metrics-body').innerHTML =
+        '<tr><td colspan="7" class="no-data">Failed to load metrics.</td></tr>';
+    }
+  }
+
+  async function loadSummary() {
+    try {
+      const r = await fetch('/api/summary');
+      const d = await r.json();
+      if (d.success && d.data) {
+        document.getElementById('stat-total').textContent     = d.data.total_coins ?? '—';
+        document.getElementById('stat-with-data').textContent = d.data.coins_with_data ?? '—';
+        document.getElementById('stat-high-conf').textContent = d.data.high_confidence_count ?? '—';
+      }
+    } catch(e) {}
+  }
+
+  async function loadHealth() {
+    try {
+      const r = await fetch('/dashboard');
+      const d = await r.json();
+      const badge = document.getElementById('health-badge');
+      const status = d.health && d.health.status;
+      const colors = { healthy: '#22c55e', degraded: '#eab308', unhealthy: '#ef4444' };
+      badge.textContent = status || 'unknown';
+      badge.style.background = (colors[status] || '#6c63ff') + '22';
+      badge.style.color = colors[status] || '#6c63ff';
+
+      if (d.health && d.health.checks) {
+        document.getElementById('health-db').innerHTML  = statusDot(d.health.checks.database && d.health.checks.database.status);
+        document.getElementById('health-sys').innerHTML = statusDot(d.health.checks.system && d.health.checks.system.status);
+      }
+      if (d.system) {
+        document.getElementById('stat-uptime').textContent = fmtUptime(d.system.uptime);
+      }
+    } catch(e) {}
+  }
+
+  async function loadRateLimits() {
+    try {
+      const r = await fetch('/api/rate-limits/status');
+      const d = await r.json();
+      const tbody = document.getElementById('rate-body');
+      if (!d.success || !d.data.length) {
+        tbody.innerHTML = '<tr><td colspan="6" class="no-data">No rate limit data.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.data.map(s => {
+        const pct = s.percentage ? s.percentage.toFixed(1) : '0.0';
+        const color = s.isNearLimit ? 'var(--red)' : 'var(--green)';
+        return `<tr>
+          <td class="symbol">${s.service}</td>
+          <td>${s.used}</td>
+          <td>${s.limit}</td>
+          <td>${s.remaining}</td>
+          <td style="color:${color}">${pct}%</td>
+          <td>${s.resetAt ? new Date(s.resetAt).toLocaleTimeString() : '—'}</td>
+        </tr>`;
+      }).join('');
+    } catch(e) {
+      document.getElementById('rate-body').innerHTML =
+        '<tr><td colspan="6" class="no-data">Failed to load rate limits.</td></tr>';
+    }
+  }
+
+  async function loadAll() {
+    const btn = document.getElementById('refresh-btn');
+    btn.disabled = true;
+    btn.textContent = '↻ Loading…';
+    document.getElementById('error-banner').style.display = 'none';
+    await Promise.allSettled([loadMetrics(), loadSummary(), loadHealth(), loadRateLimits()]);
+    btn.disabled = false;
+    btn.textContent = '↺ Refresh';
+  }
+
+  loadAll();
+  setInterval(loadAll, 60000);
+</script>
+</body>
+</html>

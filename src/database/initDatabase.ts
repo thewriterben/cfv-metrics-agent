@@ -51,7 +51,10 @@ export async function initializeDatabase(config: {
       ('XNO', 'Nano', 'nano', 'NanoRPC', 'HIGH', TRUE),
       ('NEAR', 'NEAR Protocol', 'near', 'NearBlocksAPI', 'MEDIUM', TRUE),
       ('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('ZCL', 'Zclassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM', TRUE)
+      ('ZCL', 'Zclassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('EGLD', 'MultiversX', 'elrond-erd-2', 'CoinGeckoAPI', 'MEDIUM', TRUE),
+      ('BLK', 'Blackcoin', 'blackcoin', 'CoinGeckoAPI', 'LOW', TRUE),
+      ('DGD', 'DigixDAO', 'digixdao', 'CoinGeckoAPI', 'LOW', TRUE)
       ON DUPLICATE KEY UPDATE 
           name=VALUES(name), 
           coingecko_id=VALUES(coingecko_id),
@@ -61,7 +64,7 @@ export async function initializeDatabase(config: {
     `;
 
     await connection.query(insertCoins);
-    logger.info('Initial coin data inserted/updated', { count: 12, type: 'DGF coins' });
+    logger.info('Initial coin data inserted/updated', { count: 15, type: 'CFV coins' });
 
     // Verify
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM coins');

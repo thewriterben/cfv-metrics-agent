@@ -1,20 +1,28 @@
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { DatabaseManager } from '../database/DatabaseManager.js';
 import { BlockchainDataCollector } from '../collectors/BlockchainDataCollector.js';
+import { HealthChecker } from '../utils/HealthChecker.js';
+import { RateLimitMonitor } from '../utils/RateLimitMonitor.js';
 import { logger } from '../utils/logger.js';
 import { metricsCollector } from '../utils/MetricsCollector.js';
 import { performanceMonitor } from '../utils/PerformanceMonitor.js';
 import { requestLogger, errorLogger } from '../middleware/requestLogger.js';
 import { requireAuth, requireAdmin, optionalAuth } from '../middleware/authentication.js';
 import { strictKeyLimiter, standardKeyLimiter } from '../middleware/rateLimitByKey.js';
+import { createDashboardRoutes } from './dashboardRoutes.js';
 import { 
   extractSymbol, 
   sentryRequestHandler, 
   sentryTracingHandler, 
   sentryErrorHandler 
 } from './helpers.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * CFV Metrics API Server
@@ -39,6 +47,8 @@ export class APIServer {
   private db: DatabaseManager;
   private collector: BlockchainDataCollector;
   private config: APIServerConfig;
+  private healthChecker: HealthChecker;
+  private rateLimitMonitor: RateLimitMonitor;
 
 
   constructor(config: APIServerConfig) {
@@ -48,7 +58,8 @@ export class APIServer {
     this.collector = new BlockchainDataCollector({
       coingeckoApiKey: config.coingeckoApiKey
     });
-
+    this.healthChecker = new HealthChecker(this.db);
+    this.rateLimitMonitor = new RateLimitMonitor();
 
     this.setupMiddleware();
     this.setupRoutes();
@@ -148,6 +159,19 @@ export class APIServer {
    * Setup API routes
    */
   private setupRoutes(): void {
+
+    // ── Static Dashboard UI ──────────────────────────────────────────────────
+    const publicDir = path.join(__dirname, '../public');
+    this.app.use(express.static(publicDir));
+
+    // Serve dashboard HTML at /dashboard
+    this.app.get('/dashboard', (req, res) => {
+      res.sendFile(path.join(publicDir, 'dashboard.html'));
+    });
+
+    // ── Dashboard & Monitoring JSON routes ───────────────────────────────────
+    const dashboardRouter = createDashboardRoutes({ healthChecker: this.healthChecker });
+    this.app.use('/', dashboardRouter);
 
     this.app.get('/health', async (req, res) => {
       try {
@@ -310,6 +334,132 @@ export class APIServer {
       }
     });
 
+    // ── Rate Limit Status Endpoints ──────────────────────────────────────────
+
+    // Get rate limit status for all services
+    this.app.get('/api/rate-limits/status', optionalAuth, standardKeyLimiter, (req, res) => {
+      const statuses = this.rateLimitMonitor.getAllStatus();
+      res.json({ success: true, data: statuses });
+    });
+
+    // Get rate limit status for a specific service
+    this.app.get('/api/rate-limits/:service', optionalAuth, standardKeyLimiter, (req, res) => {
+      const service = req.params.service as any;
+      const status = this.rateLimitMonitor.getStatus(service);
+      if (!status) {
+        return res.status(404).json({ success: false, error: `Unknown service: ${service}` });
+      }
+      res.json({ success: true, data: status });
+    });
+
+    // ── Custom Metrics Endpoints ─────────────────────────────────────────────
+
+    // List custom metric definitions
+    this.app.get('/api/custom-metrics', optionalAuth, standardKeyLimiter, async (req, res, next) => {
+      try {
+        const definitions = await this.db.getCustomMetricDefinitions();
+        res.json({ success: true, data: definitions, count: definitions.length });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Get a single custom metric definition
+    this.app.get('/api/custom-metrics/:id', optionalAuth, standardKeyLimiter, async (req, res, next) => {
+      try {
+        const id = parseInt(req.params.id as string);
+        if (isNaN(id)) {
+          return res.status(400).json({ success: false, error: 'Invalid definition id' });
+        }
+        const def = await this.db.getCustomMetricDefinition(id);
+        if (!def) {
+          return res.status(404).json({ success: false, error: `Custom metric definition ${id} not found` });
+        }
+        const values = await this.db.getCustomMetricValuesByDefinition(id);
+        res.json({ success: true, data: { ...def, values } });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Create a custom metric definition (REQUIRES AUTH)
+    this.app.post('/api/custom-metrics', requireAuth, strictKeyLimiter, async (req, res, next) => {
+      try {
+        const { name, description, unit, formula } = req.body;
+        if (!name || typeof name !== 'string') {
+          return res.status(400).json({ success: false, error: 'name is required' });
+        }
+        const id = await this.db.createCustomMetricDefinition({ name, description, unit, formula });
+        res.status(201).json({ success: true, data: { id, name, description, unit, formula } });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Update a custom metric definition (REQUIRES AUTH)
+    this.app.put('/api/custom-metrics/:id', requireAuth, strictKeyLimiter, async (req, res, next) => {
+      try {
+        const id = parseInt(req.params.id as string);
+        if (isNaN(id)) {
+          return res.status(400).json({ success: false, error: 'Invalid definition id' });
+        }
+        const { name, description, unit, formula, active } = req.body;
+        const updated = await this.db.updateCustomMetricDefinition(id, { name, description, unit, formula, active });
+        if (!updated) {
+          return res.status(404).json({ success: false, error: `Custom metric definition ${id} not found` });
+        }
+        res.json({ success: true, message: `Definition ${id} updated` });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Delete a custom metric definition (REQUIRES AUTH)
+    this.app.delete('/api/custom-metrics/:id', requireAuth, strictKeyLimiter, async (req, res, next) => {
+      try {
+        const id = parseInt(req.params.id as string);
+        if (isNaN(id)) {
+          return res.status(400).json({ success: false, error: 'Invalid definition id' });
+        }
+        const deleted = await this.db.deleteCustomMetricDefinition(id);
+        if (!deleted) {
+          return res.status(404).json({ success: false, error: `Custom metric definition ${id} not found` });
+        }
+        res.json({ success: true, message: `Definition ${id} deleted` });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Set a custom metric value for a coin (REQUIRES AUTH)
+    this.app.post('/api/custom-metrics/:id/values', requireAuth, strictKeyLimiter, async (req, res, next) => {
+      try {
+        const id = parseInt(req.params.id as string);
+        if (isNaN(id)) {
+          return res.status(400).json({ success: false, error: 'Invalid definition id' });
+        }
+        const { symbol, value, metadata } = req.body;
+        if (!symbol || value == null) {
+          return res.status(400).json({ success: false, error: 'symbol and value are required' });
+        }
+        await this.db.setCustomMetricValue({ definitionId: id, symbol, value, metadata });
+        res.json({ success: true, message: `Value set for ${symbol}` });
+      } catch (error) {
+        next(error);
+      }
+    });
+
+    // Get custom metric values for a coin
+    this.app.get('/api/metrics/:symbol/custom', optionalAuth, standardKeyLimiter, async (req, res, next) => {
+      try {
+        const symbol = extractSymbol(req.params);
+        const values = await this.db.getCustomMetricValues(symbol.toUpperCase());
+        res.json({ success: true, data: values, count: values.length });
+      } catch (error) {
+        next(error);
+      }
+    });
+
     // 404 handler
     this.app.use((req, res) => {
       res.status(404).json({
@@ -405,6 +555,7 @@ export class APIServer {
    */
   async stop(): Promise<void> {
     logger.info('Shutting down API server...');
+    this.rateLimitMonitor.dispose();
     await this.db.close();
   }
 }

@@ -95,6 +95,18 @@ export const BLOCKCHAIN_CONFIG: Record<string, BlockchainInfo> = {
     name: 'MultiversX',
     genesisDate: '2020-07-30',
     notes: 'Elrond mainnet launch (now MultiversX)'
+  },
+  'BLK': {
+    symbol: 'BLK',
+    name: 'Blackcoin',
+    genesisDate: '2014-02-24',
+    notes: 'Blackcoin mainnet launch — early PoS cryptocurrency'
+  },
+  'DGD': {
+    symbol: 'DGD',
+    name: 'DigixDAO',
+    genesisDate: '2016-03-30',
+    notes: 'DigixDAO launch — gold-backed digital asset governance token'
   }
 };
 

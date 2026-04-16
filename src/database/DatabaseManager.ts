@@ -266,6 +266,148 @@ export class DatabaseManager {
   async close(): Promise<void> {
     await this.pool.end();
   }
+
+  // ─── Custom Metric Definitions ───────────────────────────────────────────
+
+  /**
+   * Create a new custom metric definition
+   */
+  async createCustomMetricDefinition(params: {
+    name: string;
+    description?: string;
+    unit?: string;
+    formula?: string;
+  }): Promise<number> {
+    const [result] = await this.pool.execute<any>(
+      `INSERT INTO custom_metrics_definitions (name, description, unit, formula)
+       VALUES (?, ?, ?, ?)`,
+      [params.name, params.description || null, params.unit || null, params.formula || null]
+    );
+    return result.insertId;
+  }
+
+  /**
+   * Get all active custom metric definitions
+   */
+  async getCustomMetricDefinitions(): Promise<any[]> {
+    const [rows] = await this.pool.execute<any[]>(
+      'SELECT * FROM custom_metrics_definitions WHERE active = TRUE ORDER BY name'
+    );
+    return rows;
+  }
+
+  /**
+   * Get a single custom metric definition by id
+   */
+  async getCustomMetricDefinition(id: number): Promise<any | null> {
+    const [rows] = await this.pool.execute<any[]>(
+      'SELECT * FROM custom_metrics_definitions WHERE id = ?',
+      [id]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  }
+
+  /**
+   * Update a custom metric definition
+   */
+  async updateCustomMetricDefinition(
+    id: number,
+    params: { name?: string; description?: string; unit?: string; formula?: string; active?: boolean }
+  ): Promise<boolean> {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (params.name !== undefined)        { fields.push('name = ?');        values.push(params.name); }
+    if (params.description !== undefined) { fields.push('description = ?'); values.push(params.description); }
+    if (params.unit !== undefined)        { fields.push('unit = ?');        values.push(params.unit); }
+    if (params.formula !== undefined)     { fields.push('formula = ?');     values.push(params.formula); }
+    if (params.active !== undefined)      { fields.push('active = ?');      values.push(params.active); }
+
+    if (fields.length === 0) return false;
+
+    values.push(id);
+    const [result] = await this.pool.execute<any>(
+      `UPDATE custom_metrics_definitions SET ${fields.join(', ')} WHERE id = ?`,
+      values
+    );
+    return result.affectedRows > 0;
+  }
+
+  /**
+   * Soft-delete a custom metric definition
+   */
+  async deleteCustomMetricDefinition(id: number): Promise<boolean> {
+    const [result] = await this.pool.execute<any>(
+      'UPDATE custom_metrics_definitions SET active = FALSE WHERE id = ?',
+      [id]
+    );
+    return result.affectedRows > 0;
+  }
+
+  // ─── Custom Metric Values ─────────────────────────────────────────────────
+
+  /**
+   * Upsert a custom metric value for a coin
+   */
+  async setCustomMetricValue(params: {
+    definitionId: number;
+    symbol: string;
+    value: number;
+    metadata?: Record<string, any>;
+  }): Promise<void> {
+    const coin = await this.getCoinBySymbol(params.symbol);
+    if (!coin) {
+      throw new Error(`Coin ${params.symbol} not found in database`);
+    }
+
+    await this.pool.execute(
+      `INSERT INTO custom_metric_values (definition_id, coin_id, value, metadata, collected_at)
+       VALUES (?, ?, ?, ?, NOW())
+       ON DUPLICATE KEY UPDATE
+         value = VALUES(value),
+         metadata = VALUES(metadata),
+         collected_at = VALUES(collected_at)`,
+      [
+        params.definitionId,
+        coin.id,
+        params.value,
+        JSON.stringify(params.metadata || {})
+      ]
+    );
+  }
+
+  /**
+   * Get the latest custom metric values for a coin
+   */
+  async getCustomMetricValues(symbol: string): Promise<any[]> {
+    const [rows] = await this.pool.execute<any[]>(
+      `SELECT d.id AS definition_id, d.name, d.unit, d.description,
+              v.value, v.metadata, v.collected_at
+       FROM custom_metric_values v
+       JOIN custom_metrics_definitions d ON v.definition_id = d.id
+       JOIN coins c ON v.coin_id = c.id
+       WHERE c.symbol = ? AND d.active = TRUE
+       ORDER BY d.name`,
+      [symbol.toUpperCase()]
+    );
+    return rows;
+  }
+
+  /**
+   * Get all values for a specific custom metric definition (across all coins)
+   */
+  async getCustomMetricValuesByDefinition(definitionId: number): Promise<any[]> {
+    const [rows] = await this.pool.execute<any[]>(
+      `SELECT c.symbol, c.name AS coin_name,
+              v.value, v.metadata, v.collected_at
+       FROM custom_metric_values v
+       JOIN coins c ON v.coin_id = c.id
+       WHERE v.definition_id = ? AND c.active = TRUE
+       ORDER BY c.symbol`,
+      [definitionId]
+    );
+    return rows;
+  }
 }
 
 export default DatabaseManager;

@@ -198,9 +198,16 @@ export class CollectionScheduler {
 
       const { successful, failed, lastError } = await this.processCoinsConcurrently(coins, this.config.maxConcurrency || 5);
 
+      const status = failed === 0 ? 'completed' : (successful > 0 ? 'completed' : 'failed');
+      await this.db.updateCollectionRun(runId, status, successful, failed, lastError);
 
-
-
+      logger.info('Collection run complete', {
+        runId,
+        successful,
+        failed,
+        status,
+        timestamp: new Date().toISOString()
+      });
     } catch (error) {
       logger.error('Collection run failed', { error: error instanceof Error ? error.message : String(error) });
     }

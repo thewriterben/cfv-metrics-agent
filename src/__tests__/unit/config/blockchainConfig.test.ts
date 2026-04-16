@@ -8,7 +8,7 @@ import {
 describe('blockchainConfig', () => {
   describe('BLOCKCHAIN_CONFIG', () => {
     it('should contain all expected blockchains', () => {
-      const expectedSymbols = ['BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH', 'XEC', 'XNO', 'NEAR', 'ICP', 'EGLD'];
+      const expectedSymbols = ['BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH', 'XEC', 'XNO', 'NEAR', 'ICP', 'EGLD', 'BLK', 'DGD'];
       
       for (const symbol of expectedSymbols) {
         expect(BLOCKCHAIN_CONFIG[symbol]).toBeDefined();

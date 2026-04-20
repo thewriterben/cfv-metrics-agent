@@ -8,7 +8,7 @@ import {
 describe('blockchainConfig', () => {
   describe('BLOCKCHAIN_CONFIG', () => {
     it('should contain all expected blockchains', () => {
-      const expectedSymbols = ['BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH', 'XEC', 'XNO', 'NEAR', 'ICP', 'EGLD', 'BLK', 'DGD'];
+      const expectedSymbols = ['DGB', 'DASH', 'XMR', 'XNO', 'ZCL', 'RVN', 'XEC', 'EGLD', 'NEAR', 'ICP', 'XCH', 'DGD'];
       
       for (const symbol of expectedSymbols) {
         expect(BLOCKCHAIN_CONFIG[symbol]).toBeDefined();
@@ -29,13 +29,12 @@ describe('blockchainConfig', () => {
   });
 
   describe('calculateDaysLive', () => {
-    it('should calculate days live for BTC correctly', () => {
-      // Bitcoin genesis: 2009-01-03
+    it('should calculate days live for DASH correctly', () => {
+      // Dash genesis: 2014-01-18
       const referenceDate = new Date('2024-01-03');
-      const daysLive = calculateDaysLive('BTC', referenceDate);
+      const daysLive = calculateDaysLive('DASH', referenceDate);
       
-      // Should be exactly 15 years = 5478 days (including leap years)
-      expect(daysLive).toBe(5478);
+      expect(daysLive).toBe(3637);
     });
 
     it('should calculate days live for NEAR correctly', () => {
@@ -57,17 +56,17 @@ describe('blockchainConfig', () => {
     });
 
     it('should use current date when referenceDate is not provided', () => {
-      const daysLive = calculateDaysLive('BTC');
+      const daysLive = calculateDaysLive('DASH');
       const now = new Date();
-      const genesis = new Date(BLOCKCHAIN_CONFIG['BTC'].genesisDate);
+      const genesis = new Date(BLOCKCHAIN_CONFIG['DASH'].genesisDate);
       const expectedDays = Math.floor((now.getTime() - genesis.getTime()) / (1000 * 60 * 60 * 24));
       
       expect(daysLive).toBeCloseTo(expectedDays, 0);
     });
 
     it('should handle case-insensitive symbols', () => {
-      const daysLiveLower = calculateDaysLive('btc', new Date('2024-01-03'));
-      const daysLiveUpper = calculateDaysLive('BTC', new Date('2024-01-03'));
+      const daysLiveLower = calculateDaysLive('dash', new Date('2024-01-03'));
+      const daysLiveUpper = calculateDaysLive('DASH', new Date('2024-01-03'));
       
       expect(daysLiveLower).toBe(daysLiveUpper);
     });
@@ -79,17 +78,17 @@ describe('blockchainConfig', () => {
 
   describe('getBlockchainInfo', () => {
     it('should return blockchain info for valid symbol', () => {
-      const info = getBlockchainInfo('BTC');
+      const info = getBlockchainInfo('DASH');
       
       expect(info).toBeDefined();
-      expect(info?.symbol).toBe('BTC');
-      expect(info?.name).toBe('Bitcoin');
-      expect(info?.genesisDate).toBe('2009-01-03');
+      expect(info?.symbol).toBe('DASH');
+      expect(info?.name).toBe('Dash');
+      expect(info?.genesisDate).toBe('2014-01-18');
     });
 
     it('should handle case-insensitive symbols', () => {
-      const infoLower = getBlockchainInfo('btc');
-      const infoUpper = getBlockchainInfo('BTC');
+      const infoLower = getBlockchainInfo('dash');
+      const infoUpper = getBlockchainInfo('DASH');
       
       expect(infoLower).toEqual(infoUpper);
     });

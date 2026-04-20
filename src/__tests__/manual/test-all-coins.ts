@@ -8,18 +8,18 @@ import { BlockchainDataCollector } from '../../collectors/BlockchainDataCollecto
 
 // All 12 DGF coins
 const DGF_COINS = [
-  { symbol: 'BTC', name: 'Bitcoin' },
-  { symbol: 'ETH', name: 'Ethereum' },
-  { symbol: 'DASH', name: 'Dash' },
   { symbol: 'DGB', name: 'DigiByte' },
+  { symbol: 'DASH', name: 'Dash' },
   { symbol: 'XMR', name: 'Monero' },
-  { symbol: 'RVN', name: 'Ravencoin' },
-  { symbol: 'XCH', name: 'Chia' },
-  { symbol: 'XEC', name: 'eCash' },
   { symbol: 'XNO', name: 'Nano' },
+  { symbol: 'ZCL', name: 'Zclassic' },
+  { symbol: 'RVN', name: 'Ravencoin' },
+  { symbol: 'XEC', name: 'eCash' },
+  { symbol: 'EGLD', name: 'MultiversX' },
   { symbol: 'NEAR', name: 'NEAR Protocol' },
   { symbol: 'ICP', name: 'Internet Computer' },
-  { symbol: 'ZCL', name: 'Zclassic' }
+  { symbol: 'XCH', name: 'Chia' },
+  { symbol: 'DGD', name: 'Digital Gold' }
 ];
 
 async function delay(ms: number): Promise<void> {

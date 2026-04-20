@@ -7,9 +7,7 @@ import { logger } from '../utils/logger.js';
  * 3xpl API Collector
  * 
  * Collects blockchain transaction data from 3xpl.com API
- * Supports 5 DGF coins with verified coverage:
- * - Bitcoin (BTC)
- * - Ethereum (ETH)
+ * Supports 3 DGF coins with verified coverage:
  * - Dash (DASH)
  * - DigiByte (DGB)
  * - eCash (XEC)
@@ -53,8 +51,6 @@ export class ThreeXplCollector {
   // Mapping of coin symbols to 3xpl blockchain names
   // Only includes coins that are VERIFIED to be supported
   private static readonly BLOCKCHAIN_MAP: Record<string, string> = {
-    'BTC': 'bitcoin',
-    'ETH': 'ethereum',
     'DASH': 'dash',
     'DGB': 'digibyte',
     'XEC': 'ecash'

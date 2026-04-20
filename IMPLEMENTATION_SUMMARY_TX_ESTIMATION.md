@@ -9,7 +9,7 @@ This implementation addresses the issue of inaccurate transaction count and velo
 - **`src/config/blockchainConfig.ts`** (NEW)
   - Centralized configuration for blockchain genesis dates
   - Dynamic `calculateDaysLive()` function
-  - Support for 12 blockchains: BTC, ETH, DASH, DGB, XMR, RVN, XCH, XEC, XNO, NEAR, ICP, EGLD
+  - Support for 12 DGF report blockchains: DGB, DASH, XMR, XNO, ZCL, RVN, XEC, EGLD, NEAR, ICP, XCH, DGD
 
 - **`src/__tests__/unit/config/blockchainConfig.test.ts`** (NEW)
   - Comprehensive test coverage for blockchain configuration

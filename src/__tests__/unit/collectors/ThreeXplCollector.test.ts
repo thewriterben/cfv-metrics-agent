@@ -19,8 +19,6 @@ describe('ThreeXplCollector', () => {
 
   describe('isSupported', () => {
     it('should return true for supported coins', () => {
-      expect(collector.isSupported('BTC')).toBe(true);
-      expect(collector.isSupported('ETH')).toBe(true);
       expect(collector.isSupported('DASH')).toBe(true);
       expect(collector.isSupported('DGB')).toBe(true);
       expect(collector.isSupported('XEC')).toBe(true);
@@ -57,7 +55,7 @@ describe('ThreeXplCollector', () => {
         totalSupply: 21000000
       });
 
-      const result = await (collector as any).calculateAnnualMetrics('BTC');
+      const result = await (collector as any).calculateAnnualMetrics('DASH');
 
       expect(result.annualTxCount).toBe(36500000); // 100000 * 365
       expect(result.annualTxValue).toBe(5000000000000); // From CoinGecko
@@ -81,7 +79,7 @@ describe('ThreeXplCollector', () => {
         new Error('CoinGecko API error')
       );
 
-      const result = await (collector as any).calculateAnnualMetrics('BTC');
+      const result = await (collector as any).calculateAnnualMetrics('DASH');
 
       expect(result.annualTxCount).toBe(36500000); // 100000 * 365
       expect(result.annualTxValue).toBe(0); // Fallback failed
@@ -147,11 +145,11 @@ describe('ThreeXplCollector', () => {
         totalSupply: 120000000
       });
 
-      const result = await collector.collectMetrics('ETH');
+      const result = await collector.collectMetrics('DGB');
 
       expect(result.confidence).toBe('MEDIUM');
       expect(result.annualTxValue).toBeGreaterThan(0);
-      expect(result.sources).toContain('3xpl.com (ethereum)');
+      expect(result.sources).toContain('3xpl.com (digibyte)');
       expect(result.sources).toContain('CoinGecko (volume24h × 365)');
       expect(result.issues).toContain('Transaction volume estimated using CoinGecko (volume24h × 365)');
       expect(result.metadata?.usedFallback).toBe(true);
@@ -173,7 +171,7 @@ describe('ThreeXplCollector', () => {
         new Error('CoinGecko API error')
       );
 
-      const result = await collector.collectMetrics('ETH');
+      const result = await collector.collectMetrics('DGB');
 
       expect(result.confidence).toBe('LOW');
       expect(result.annualTxValue).toBe(0);
@@ -221,12 +219,10 @@ describe('ThreeXplCollector', () => {
     it('should return list of supported coins', () => {
       const supported = ThreeXplCollector.getSupportedCoins();
       
-      expect(supported).toContain('BTC');
-      expect(supported).toContain('ETH');
       expect(supported).toContain('DASH');
       expect(supported).toContain('DGB');
       expect(supported).toContain('XEC');
-      expect(supported).toHaveLength(5);
+      expect(supported).toHaveLength(3);
     });
   });
 });

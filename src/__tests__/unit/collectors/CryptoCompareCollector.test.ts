@@ -21,14 +21,14 @@ describe('CryptoCompareCollector', () => {
 
   describe('supports', () => {
     it('should return true for all CFV coins', async () => {
-      const coins = ['BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH', 'XEC', 'XNO', 'NEAR', 'ICP', 'EGLD', 'ZCL', 'DGD', 'BLK'];
+      const coins = ['DGB', 'DASH', 'XMR', 'XNO', 'ZCL', 'RVN', 'XEC', 'EGLD', 'NEAR', 'ICP', 'XCH', 'DGD'];
       for (const coin of coins) {
         expect(await collector.supports(coin)).toBe(true);
       }
     });
 
     it('should return true for lowercase symbols', async () => {
-      expect(await collector.supports('btc')).toBe(true);
+      expect(await collector.supports('dgb')).toBe(true);
     });
 
     it('should return false for unknown coins', async () => {
@@ -136,7 +136,7 @@ describe('CryptoCompareCollector', () => {
         },
       });
 
-      const result = await collector.collect('BTC', 'adoption');
+      const result = await collector.collect('DASH', 'adoption');
 
       expect(result.value).toBe(80000);
       expect(result.confidence).toBe('LOW');

@@ -11,7 +11,7 @@ import { logger } from '../utils/logger.js';
  * Unified Blockchain Data Collector
  * 
  * Routes requests to appropriate data source:
- * - 3xpl for 5 DGF coins (BTC, ETH, DGB, XEC) + DASH via custom API
+ * - 3xpl for DGF coins with verified support (DASH, DGB, XEC)
  * - Custom collectors for XNO (Nano RPC), NEAR (NearBlocks), ICP (CoinGecko)
  * - CoinGecko estimation fallback for XMR, RVN, XCH, EGLD, ZCL (no dedicated source)
  * 
@@ -255,7 +255,7 @@ export class BlockchainDataCollector {
     fallback: string[];
   } {
     return {
-      threexpl: ThreeXplCollector.getSupportedCoins(), // BTC, ETH, DGB, XEC (Note: DASH uses custom API, not 3xpl)
+      threexpl: ThreeXplCollector.getSupportedCoins(), // DASH, DGB, XEC (DASH uses custom API by default)
       custom: ['DASH', 'XNO', 'NEAR', 'ICP'],
       estimatedOnly: ['XMR', 'RVN', 'XCH', 'EGLD', 'ZCL'], // No dedicated collector
       fallback: ['All coins via CoinGecko (estimated)']

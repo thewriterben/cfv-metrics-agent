@@ -39,8 +39,6 @@ export class TwitterCollector implements MetricCollector {
   private limiter: Bottleneck;
 
   private static readonly TWITTER_MAP: Record<string, string> = {
-    'BTC': 'Bitcoin',
-    'ETH': 'ethereum',
     'DASH': 'Dashpay',
     'DGB': 'DigiByteCoin',
     'XMR': 'monero',

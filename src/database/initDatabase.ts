@@ -40,8 +40,6 @@ export async function initializeDatabase(config: {
     // This preserves any existing coin data and only updates if needed
     const insertCoins = `
       INSERT INTO coins (symbol, name, coingecko_id, collector_type, confidence_level, active) VALUES
-      ('BTC', 'Bitcoin', 'bitcoin', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('ETH', 'Ethereum', 'ethereum', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('DASH', 'Dash', 'dash', 'DashAPI', 'MEDIUM', TRUE),
       ('DGB', 'DigiByte', 'digibyte', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('XMR', 'Monero', 'monero', 'CoinGeckoAPI', 'MEDIUM', TRUE),
@@ -53,8 +51,7 @@ export async function initializeDatabase(config: {
       ('ICP', 'Internet Computer', 'internet-computer', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('ZCL', 'Zclassic', 'zclassic', 'CoinGeckoAPI', 'MEDIUM', TRUE),
       ('EGLD', 'MultiversX', 'elrond-erd-2', 'CoinGeckoAPI', 'MEDIUM', TRUE),
-      ('BLK', 'Blackcoin', 'blackcoin', 'CoinGeckoAPI', 'LOW', TRUE),
-      ('DGD', 'DigixDAO', 'digixdao', 'CoinGeckoAPI', 'LOW', TRUE)
+      ('DGD', 'Digital Gold', 'digixdao', 'CoinGeckoAPI', 'LOW', TRUE)
       ON DUPLICATE KEY UPDATE 
           name=VALUES(name), 
           coingecko_id=VALUES(coingecko_id),
@@ -64,7 +61,7 @@ export async function initializeDatabase(config: {
     `;
 
     await connection.query(insertCoins);
-    logger.info('Initial coin data inserted/updated', { count: 15, type: 'CFV coins' });
+    logger.info('Initial coin data inserted/updated', { count: 12, type: 'CFV coins' });
 
     // Verify
     const [rows] = await connection.query('SELECT COUNT(*) as count FROM coins');

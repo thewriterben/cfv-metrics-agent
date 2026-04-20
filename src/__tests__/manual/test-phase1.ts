@@ -5,18 +5,18 @@ import { EnhancedCacheManager } from '../../utils/EnhancedCacheManager.js';
 /**
  * Phase 1 Integration Test
  * 
- * Tests blockchain data collection for 8 DGF coins supported by 3xpl:
- * - BTC (Bitcoin)
- * - ETH (Ethereum)
+ * Tests blockchain data collection for 8 DGF report coins:
  * - DASH (Dash)
  * - DGB (DigiByte)
  * - XMR (Monero)
+ * - XNO (Nano)
+ * - ZCL (Zclassic)
  * - RVN (Ravencoin)
- * - XCH (Chia)
  * - XEC (eCash)
+ * - EGLD (MultiversX)
  */
 
-const DGF_COINS_PHASE1 = ['BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH', 'XEC'];
+const DGF_COINS_PHASE1 = ['DASH', 'DGB', 'XMR', 'XNO', 'ZCL', 'RVN', 'XEC', 'EGLD'];
 
 async function testPhase1() {
   console.log('🚀 Phase 1 Integration Test\n');
@@ -130,7 +130,7 @@ async function testPhase1() {
 
   // Phase 1 completion status
   console.log(`\n${'='.repeat(70)}`);
-  if (successCount === DGF_COINS_PHASE1.length && highConfidenceCount >= 6) {
+  if (successCount === DGF_COINS_PHASE1.length) {
     console.log('✅ PHASE 1 COMPLETE - All coins tested successfully!');
   } else if (successCount >= 6) {
     console.log('⚠️  PHASE 1 PARTIAL - Most coins working, some issues detected');

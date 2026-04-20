@@ -1,7 +1,7 @@
 # ThreeXplCollector Volume Data Fallback - Implementation Summary
 
 ## Problem Statement
-The ThreeXplCollector was returning zero for `annualTxValue` and `avgTxValue` because the 3xpl API endpoint does not provide volume data. This critical issue was breaking CFV score calculations for major coins (BTC, ETH, DASH, DGB, XEC) by making them appear to have no economic activity.
+The ThreeXplCollector was returning zero for `annualTxValue` and `avgTxValue` because the 3xpl API endpoint does not provide volume data. This critical issue was breaking CFV score calculations for supported 3xpl DGF coins (DASH, DGB, XEC) by making them appear to have no economic activity.
 
 ## Solution
 Implemented a CoinGecko fallback mechanism that supplements missing volume data from 3xpl with market volume estimates from CoinGecko API.

@@ -2,14 +2,12 @@
 
 This document provides a comprehensive overview of the data sources and confidence levels for the DGF (Digital Gold Fund) coins supported by the CFV Metrics Agent.
 
-**Note**: The database currently initializes 12 coins (BTC, ETH, DASH, DGB, XMR, RVN, XCH, XEC, XNO, NEAR, ICP, ZCL). EGLD (MultiversX) is referenced in architecture documentation but not yet added to the database.
+**Note**: The database initializes the 12 DGF report coins: DGB, DASH, XMR, XNO, ZCL, RVN, XEC, EGLD, NEAR, ICP, XCH, DGD.
 
 ## Data Source Summary
 
 | Coin | Symbol | Primary Source | Fallback | Confidence | Notes |
 |------|--------|---------------|----------|------------|-------|
-| Bitcoin | BTC | 3xpl | CoinGecko | MEDIUM | TX count from 3xpl, volume from CoinGecko |
-| Ethereum | ETH | 3xpl | CoinGecko | MEDIUM | TX count from 3xpl, volume from CoinGecko |
 | Dash | DASH | Dash API | CoinGecko | MEDIUM-HIGH | Direct blockchain API |
 | DigiByte | DGB | 3xpl | CoinGecko | MEDIUM | TX count from 3xpl, volume from CoinGecko |
 | eCash | XEC | 3xpl | CoinGecko | MEDIUM | TX count from 3xpl, volume from CoinGecko |
@@ -21,6 +19,7 @@ This document provides a comprehensive overview of the data sources and confiden
 | Chia | XCH | CoinGecko only | — | LOW | No blockchain explorer API available |
 | MultiversX | EGLD | CoinGecko only | — | LOW | API exists but not yet integrated |
 | Zclassic | ZCL | CoinGecko only | — | LOW | No blockchain explorer API available |
+| Digital Gold | DGD | CoinGecko only | — | LOW | No blockchain explorer API available |
 
 ## Confidence Level Definitions
 
@@ -33,7 +32,7 @@ These sources provide the most accurate CFV calculations because they access act
 
 ### MEDIUM Confidence
 Coins with **blockchain explorer APIs** (like 3xpl) or **custom data collectors**:
-- **Bitcoin (BTC), Ethereum (ETH), DigiByte (DGB), eCash (XEC)**: Transaction counts from 3xpl explorer, volume estimates from CoinGecko market data
+- **DigiByte (DGB), eCash (XEC)**: Transaction counts from 3xpl explorer, volume estimates from CoinGecko market data
 - **NEAR Protocol (NEAR)**: NearBlocks API for transaction metrics
 - **Internet Computer (ICP)**: CoinGecko market data only, but ICP has transparent on-chain governance
 
@@ -46,12 +45,13 @@ Coins with **only CoinGecko volume estimation**:
 - **Chia (XCH)**: No accessible blockchain explorer API
 - **MultiversX (EGLD)**: API exists but not yet integrated
 - **Zclassic (ZCL)**: No accessible blockchain explorer API
+- **Digital Gold (DGD)**: No accessible blockchain explorer API
 
 These coins rely entirely on CoinGecko's volume estimates (volume24h × 365), which may not accurately reflect real transaction activity. CFV calculations for these coins should be treated as rough estimates only.
 
 ## Data Collection Methods
 
-### 3xpl Explorer (BTC, ETH, DGB, XEC)
+### 3xpl Explorer (DASH, DGB, XEC)
 **How it works:**
 1. Fetches 24-hour transaction counts from 3xpl.com API
 2. Extrapolates to annual transaction count (× 365)

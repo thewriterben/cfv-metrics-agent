@@ -22,15 +22,13 @@ describe('RedditCollector', () => {
 
   describe('supports', () => {
     it('should return true for coins with subreddit mappings', async () => {
-      expect(await collector.supports('BTC')).toBe(true);
-      expect(await collector.supports('ETH')).toBe(true);
       expect(await collector.supports('DASH')).toBe(true);
       expect(await collector.supports('XMR')).toBe(true);
       expect(await collector.supports('XNO')).toBe(true);
     });
 
     it('should return true for lowercase symbols', async () => {
-      expect(await collector.supports('btc')).toBe(true);
+      expect(await collector.supports('dash')).toBe(true);
     });
 
     it('should return false for coins without mappings', async () => {
@@ -49,12 +47,12 @@ describe('RedditCollector', () => {
         },
       });
 
-      const result = await collector.collect('BTC', 'adoption');
+      const result = await collector.collect('DASH', 'adoption');
 
       expect(result.value).toBe(5000000);
       expect(result.confidence).toBe('LOW');
       expect(result.source).toBe('Reddit');
-      expect(result.metadata?.subreddit).toBe('Bitcoin');
+      expect(result.metadata?.subreddit).toBe('dashpay');
       expect(result.metadata?.activeUsers).toBe(12000);
     });
 
@@ -67,7 +65,7 @@ describe('RedditCollector', () => {
         },
       });
 
-      const result = await collector.collect('ETH', 'adoption');
+      const result = await collector.collect('DGB', 'adoption');
 
       expect(result.value).toBe(100000);
       expect(result.metadata?.activeUsers).toBe(0);
@@ -76,7 +74,7 @@ describe('RedditCollector', () => {
 
   describe('collect - unsupported metric', () => {
     it('should throw for non-adoption metrics', async () => {
-      await expect(collector.collect('BTC', 'price')).rejects.toThrow(
+      await expect(collector.collect('DASH', 'price')).rejects.toThrow(
         /not supported by Reddit/,
       );
     });
@@ -93,7 +91,7 @@ describe('RedditCollector', () => {
       });
       mockAxiosInstance.get.mockRejectedValueOnce(error);
 
-      await expect(collector.collect('BTC', 'adoption')).rejects.toThrow(
+      await expect(collector.collect('DASH', 'adoption')).rejects.toThrow(
         /not found/,
       );
     });
@@ -136,13 +134,12 @@ describe('TwitterCollector', () => {
 
   describe('supports', () => {
     it('should return true for coins with mappings when token is set', async () => {
-      expect(await collector.supports('BTC')).toBe(true);
-      expect(await collector.supports('ETH')).toBe(true);
+      expect(await collector.supports('DASH')).toBe(true);
       expect(await collector.supports('NEAR')).toBe(true);
     });
 
     it('should return false when no bearer token is set', async () => {
-      expect(await collectorNoToken.supports('BTC')).toBe(false);
+      expect(await collectorNoToken.supports('DASH')).toBe(false);
     });
 
     it('should return false for unmapped coins', async () => {
@@ -163,17 +160,17 @@ describe('TwitterCollector', () => {
         },
       });
 
-      const result = await collector.collect('BTC', 'adoption');
+      const result = await collector.collect('DASH', 'adoption');
 
       expect(result.value).toBe(6700000);
       expect(result.confidence).toBe('LOW');
       expect(result.source).toBe('Twitter');
-      expect(result.metadata?.username).toBe('Bitcoin');
+      expect(result.metadata?.username).toBe('Dashpay');
       expect(result.metadata?.followers).toBe(6700000);
     });
 
     it('should throw when no bearer token is configured', async () => {
-      await expect(collectorNoToken.collect('BTC', 'adoption')).rejects.toThrow(
+      await expect(collectorNoToken.collect('DASH', 'adoption')).rejects.toThrow(
         /TWITTER_BEARER_TOKEN is missing/,
       );
     });
@@ -181,7 +178,7 @@ describe('TwitterCollector', () => {
 
   describe('collect - unsupported metric', () => {
     it('should throw for non-adoption metrics', async () => {
-      await expect(collector.collect('BTC', 'price')).rejects.toThrow(
+      await expect(collector.collect('DASH', 'price')).rejects.toThrow(
         /not supported by Twitter/,
       );
     });

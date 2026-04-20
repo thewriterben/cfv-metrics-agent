@@ -47,7 +47,7 @@ Blockchain-specific collectors also provide:
 - **GitHubCollector** - Development activity metrics
 
 #### Blockchain Collectors
-- **ThreeXplCollector** - Multi-chain support (BTC, ETH, DASH, etc.)
+- **ThreeXplCollector** - Multi-chain support (DASH, DGB, XEC)
 - **DashApiClient** - Dash-specific metrics
 - **NanoCollector** - Nano blockchain data
 - **NEARCollector** - NEAR protocol data
@@ -154,7 +154,7 @@ collectorRegistry.register(new MyCollector(), {
   name: 'MyCollector',
   type: 'api',
   priority: 'secondary',
-  supportedCoins: ['BTC', 'ETH'],
+  supportedCoins: ['DGB', 'DASH'],
   description: 'My custom collector'
 });
 ```

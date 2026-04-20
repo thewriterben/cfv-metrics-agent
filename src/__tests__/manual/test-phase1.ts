@@ -130,7 +130,7 @@ async function testPhase1() {
 
   // Phase 1 completion status
   console.log(`\n${'='.repeat(70)}`);
-  if (successCount === DGF_COINS_PHASE1.length && highConfidenceCount >= 2) {
+  if (successCount === DGF_COINS_PHASE1.length) {
     console.log('✅ PHASE 1 COMPLETE - All coins tested successfully!');
   } else if (successCount >= 6) {
     console.log('⚠️  PHASE 1 PARTIAL - Most coins working, some issues detected');

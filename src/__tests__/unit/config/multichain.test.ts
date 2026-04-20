@@ -5,7 +5,7 @@ import { BLOCKCHAIN_CONFIG, getBlockchainInfo, calculateDaysLive } from '../../.
  * Multi-chain configuration coverage for DGF report set
  */
 
-describe('blockchainConfig Phase 4 additions', () => {
+describe('blockchainConfig DGF report coins', () => {
   it('should include ZCL (Zclassic)', () => {
     const zcl = BLOCKCHAIN_CONFIG['ZCL'];
     expect(zcl).toBeDefined();

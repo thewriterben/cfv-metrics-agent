@@ -39,8 +39,6 @@ export class RedditCollector implements MetricCollector {
   private limiter: Bottleneck;
 
   private static readonly SUBREDDIT_MAP: Record<string, string> = {
-    'BTC': 'Bitcoin',
-    'ETH': 'ethereum',
     'DASH': 'dashpay',
     'DGB': 'Digibyte',
     'XMR': 'Monero',
@@ -52,7 +50,6 @@ export class RedditCollector implements MetricCollector {
     'ICP': 'dfinity',
     'EGLD': 'MultiversX',
     'ZCL': 'ZClassic',
-    'BLK': 'BlackCoin',
   };
 
   constructor(_rateLimiter?: RateLimiter) {

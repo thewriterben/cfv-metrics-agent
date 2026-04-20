@@ -9,7 +9,7 @@ import type { TransactionMetrics } from './types/index.js';
  * by collecting the same coins both sequentially and concurrently.
  */
 
-const TEST_COINS = ['BTC', 'ETH', 'DASH', 'DGB', 'XEC'];
+const TEST_COINS = ['DGB', 'DASH', 'XEC', 'NEAR', 'ICP'];
 
 interface CollectionResult {
   coin: string;

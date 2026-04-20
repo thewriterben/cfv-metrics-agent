@@ -18,7 +18,7 @@ async function testThreeXplFallback() {
     coingeckoApiKey: process.env.COINGECKO_API_KEY
   });
 
-  const testCoins = ['BTC', 'ETH', 'DASH'];
+  const testCoins = ['DASH', 'DGB', 'XEC'];
 
   for (const coin of testCoins) {
     console.log(`\n📊 Testing ${coin}:`);

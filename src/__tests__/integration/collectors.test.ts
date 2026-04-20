@@ -55,7 +55,7 @@ describe('Collector Integration Tests', () => {
 
       (axios.get as any) = jest.fn(() => Promise.resolve(mockResponse));
 
-      const metrics = await collector.collectMetrics('BTC');
+      const metrics = await collector.collectMetrics('DGB');
 
       // Verify correct data extraction
       expect(metrics.currentPrice).toBe(45000);
@@ -68,7 +68,7 @@ describe('Collector Integration Tests', () => {
       
       // Verify axios was called with correct parameters
       expect(axios.get).toHaveBeenCalledWith(
-        'https://api.coingecko.com/api/v3/coins/bitcoin',
+        'https://api.coingecko.com/api/v3/coins/digibyte',
         expect.objectContaining({
           headers: expect.objectContaining({
             'Accept': 'application/json',
@@ -295,7 +295,7 @@ describe('Collector Integration Tests', () => {
       jest.spyOn(collector['coingeckoCollector'], 'collectMetrics')
         .mockResolvedValue(mockCoinGeckoMetrics);
 
-      const metrics = await collector.collectMetrics('BTC');
+      const metrics = await collector.collectMetrics('DGB');
 
       // annualTxCount should come from 3xpl
       expect(metrics.annualTxCount).toBe(109500000); // 300000 * 365
@@ -313,7 +313,7 @@ describe('Collector Integration Tests', () => {
       jest.spyOn(collector['coingeckoCollector'], 'collectMetrics')
         .mockRejectedValue(new Error('CoinGecko API error'));
 
-      await expect(collector.collectMetrics('BTC')).rejects.toThrow();
+      await expect(collector.collectMetrics('DGB')).rejects.toThrow();
     });
   });
 

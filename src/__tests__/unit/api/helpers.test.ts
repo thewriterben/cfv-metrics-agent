@@ -17,7 +17,7 @@ describe('API helpers', () => {
       expect(extractSymbol({ symbol: 'NEAR' })).toBe('NEAR');
       expect(extractSymbol({ symbol: 'ICP' })).toBe('ICP');
       expect(extractSymbol({ symbol: 'EGLD' })).toBe('EGLD');
-      expect(extractSymbol({ symbol: 'BLK' })).toBe('BLK');
+      expect(extractSymbol({ symbol: 'ZCL' })).toBe('ZCL');
       expect(extractSymbol({ symbol: 'DGD' })).toBe('DGD');
     });
 

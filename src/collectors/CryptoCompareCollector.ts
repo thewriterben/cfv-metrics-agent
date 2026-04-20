@@ -13,8 +13,6 @@ import { RequestCoalescer } from '../utils/RequestCoalescer.js';
 
 // CryptoCompare numeric coin IDs for the social/stats endpoint
 const CRYPTOCOMPARE_COIN_IDS: Record<string, number> = {
-  BTC: 1182,
-  ETH: 7605,
   DASH: 3807,
   DGB: 4432,
   XMR: 5038,
@@ -27,8 +25,8 @@ const CRYPTOCOMPARE_COIN_IDS: Record<string, number> = {
 };
 
 const SUPPORTED_SYMBOLS = [
-  'BTC', 'ETH', 'DASH', 'DGB', 'XMR', 'RVN', 'XCH',
-  'XEC', 'XNO', 'NEAR', 'ICP', 'EGLD', 'ZCL', 'DGD', 'BLK',
+  'DGB', 'DASH', 'XMR', 'XNO', 'ZCL', 'RVN', 'XEC',
+  'EGLD', 'NEAR', 'ICP', 'XCH', 'DGD',
 ];
 
 interface CryptoComparePriceResponse {

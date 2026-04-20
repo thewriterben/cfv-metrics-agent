@@ -4,7 +4,7 @@ import { BlockchainDataCollector } from '../../collectors/BlockchainDataCollecto
  * Quick Test - 3 Coins with Conservative Rate Limiting
  */
 
-const TEST_COINS = ['BTC', 'DASH', 'XEC'];
+const TEST_COINS = ['DGB', 'DASH', 'XEC'];
 
 async function testQuick() {
   console.log('🚀 Quick Test - 3 Coins\n');

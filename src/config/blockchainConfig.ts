@@ -5,18 +5,18 @@
  * These values are used to calculate dynamic metrics like daysLive.
  * 
  * Sources:
- * - BTC: Bitcoin whitepaper October 2008, Genesis block January 3, 2009
- * - ETH: Ethereum mainnet launch July 30, 2015
  * - DASH: Dash (formerly Darkcoin) launch January 18, 2014
  * - DGB: DigiByte launch January 10, 2014
  * - XMR: Monero launch April 18, 2014
- * - RVN: Ravencoin launch October 31, 2017
- * - XCH: Chia mainnet launch March 19, 2021
- * - XEC: eCash (formerly Bitcoin Cash ABC) launch November 15, 2020
  * - XNO: Nano (formerly RaiBlocks) beta launch March 2015, rebranded to Nano January 2018
+ * - ZCL: Zclassic launch September 28, 2016
+ * - RVN: Ravencoin launch October 31, 2017
+ * - XEC: eCash (formerly Bitcoin Cash ABC) launch November 15, 2020
+ * - EGLD: Elrond (now MultiversX) mainnet launch July 30, 2020
  * - NEAR: NEAR Protocol mainnet launch April 22, 2020
  * - ICP: Internet Computer mainnet launch May 10, 2021
- * - EGLD: Elrond (now MultiversX) mainnet launch July 30, 2020
+ * - XCH: Chia mainnet launch March 19, 2021
+ * - DGD: Digital Gold launch March 30, 2016
  */
 
 export interface BlockchainInfo {
@@ -27,18 +27,6 @@ export interface BlockchainInfo {
 }
 
 export const BLOCKCHAIN_CONFIG: Record<string, BlockchainInfo> = {
-  'BTC': {
-    symbol: 'BTC',
-    name: 'Bitcoin',
-    genesisDate: '2009-01-03',
-    notes: 'Genesis block mined January 3, 2009'
-  },
-  'ETH': {
-    symbol: 'ETH',
-    name: 'Ethereum',
-    genesisDate: '2015-07-30',
-    notes: 'Ethereum mainnet launch'
-  },
   'DASH': {
     symbol: 'DASH',
     name: 'Dash',
@@ -78,6 +66,12 @@ export const BLOCKCHAIN_CONFIG: Record<string, BlockchainInfo> = {
     genesisDate: '2015-03-01',
     notes: 'Beta launch as RaiBlocks in March 2015, rebranded to Nano in January 2018'
   },
+  'ZCL': {
+    symbol: 'ZCL',
+    name: 'Zclassic',
+    genesisDate: '2016-09-28',
+    notes: 'Zclassic launch — Bitcoin/Zcash fork'
+  },
   'NEAR': {
     symbol: 'NEAR',
     name: 'NEAR Protocol',
@@ -96,17 +90,11 @@ export const BLOCKCHAIN_CONFIG: Record<string, BlockchainInfo> = {
     genesisDate: '2020-07-30',
     notes: 'Elrond mainnet launch (now MultiversX)'
   },
-  'BLK': {
-    symbol: 'BLK',
-    name: 'Blackcoin',
-    genesisDate: '2014-02-24',
-    notes: 'Blackcoin mainnet launch — early PoS cryptocurrency'
-  },
   'DGD': {
     symbol: 'DGD',
-    name: 'DigixDAO',
+    name: 'Digital Gold',
     genesisDate: '2016-03-30',
-    notes: 'DigixDAO launch — gold-backed digital asset governance token'
+    notes: 'Digital Gold launch'
   }
 };
 
